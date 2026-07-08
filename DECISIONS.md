@@ -27,3 +27,11 @@ mais curto para o viés compartilhado invisível.
 ## D6 — Gold é de mão humana, sempre (2026-07-08)
 Nenhuma saída de modelo entra como ground-truth (anti-autofagia). O motor lê golds,
 jamais escreve.
+
+## D7 — bench: qualidade objetiva OU humana agregada, nunca modelo (2026-07-08)
+O bootstrap de roster (`bench.py`) mede custo/latência sozinho, mas a QUALIDADE só vem de
+régua determinística (`rulers.py`) OU da experiência de VÁRIOS colaboradores agregada por
+mediana (`ratings`) — nunca de um modelo julgando outro (D6), nunca do palpite de um só. O
+bench ORDENA e SUGERE o roster (o mais barato que passou por função); promoção segue decisão
+humana com N>=5 (D1/D5). Motivo: a partida a frio (escolher a 1ª lista a medir) faltava entre
+os degraus — sem ela cada adotante improvisava o benchmark à mão.

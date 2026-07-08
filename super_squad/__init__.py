@@ -10,5 +10,7 @@ Camadas (de baixo pra cima; cada uma importável sozinha):
   role_shadow   — shadow audit: régua determinística × agente × gold humano
   candidate_eval— avaliar modelo candidato SEM tocar o roster titular
   code_writer   — papel `code`: spec -> rascunho (quem chama audita e decide)
+  rulers        — réguas determinísticas prontas (JSON-válido, numérico, janela, F1, verdito)
+  bench         — bootstrap de roster (degrau 0): pool × suite -> matriz custo/latência/pontuação
 """
 __version__ = "0.1.0"

@@ -1,5 +1,18 @@
 # Changelog
 
+## Não lançado
+
+- `rulers` — biblioteca de réguas DETERMINÍSTICAS reutilizáveis para o fiscal (o repo não
+  trazia nenhuma pronta): `json_valid` (estrito a cerca markdown), `numeric_close` (extrai a
+  resposta numérica, pt-BR/en), `length_window`, `contains_all` (sem acento), `exact_match`,
+  `keyword_verdict` (ponte p/ `squad.parse_verdict_keyword`), `set_f1`; + `resolve_ruler` p/
+  suites em JSON. Puras, stdlib-only, herméticas.
+- `bench` — bootstrap de roster (o "degrau 0": pool × suite -> matriz de custo/latência/
+  qualidade + pontuação por função + sugestão). Qualidade só de régua determinística OU de
+  ratings humanos de VÁRIOS colaboradores agregados por mediana — nunca modelo-julga-modelo
+  (D6/D7). Dry-run por default; `--preflight` compõe a guarda B6. Sugere, mas não rosteia (D5).
+- +25 testes herméticos (rulers + bench); suíte total 104, 0 rede.
+
 ## 0.1.0 — 2026-07-08
 
 Primeira extração pública do motor (clean-room a partir do projeto de origem, onde cada
