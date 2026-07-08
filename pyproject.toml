@@ -1,0 +1,32 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "super-squad-multiagent"
+version = "0.1.0"
+description = "Multi-model orchestration with an oversight regime: fan-out via OpenRouter + shadow audits against deterministic rulers and human ground-truth"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { file = "LICENSE" }
+authors = [{ name = "Claudemir Silva" }]
+keywords = ["multi-agent", "llm", "openrouter", "evaluation", "oversight", "audit"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3 :: Only",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
+# stdlib-only de propósito (ver README); extras opcionais só p/ helpers de visão.
+dependencies = []
+
+[project.optional-dependencies]
+vision = ["Pillow"]
+dev = ["pytest"]
+
+[project.urls]
+Repository = "https://github.com/oclaudemirsilva/super-squad-multiagent"
+
+[tool.setuptools]
+packages = ["super_squad"]

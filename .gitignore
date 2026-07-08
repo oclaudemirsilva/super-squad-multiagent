@@ -1,0 +1,26 @@
+# segredos — a chave NUNCA entra no repo (leitura só por env OPENROUTER_API_KEY)
+.env
+.env.*
+*.key
+
+# python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.venv/
+venv/
+dist/
+build/
+
+# artefatos de execução local (checkpoints/ledger são do USUÁRIO, não do repo)
+_checkpoints/
+.squad_spend/
+_spend_ledger.jsonl
+*.local.jsonl
+
+# OS/editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
