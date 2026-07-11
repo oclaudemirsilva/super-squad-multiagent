@@ -63,3 +63,12 @@ o system prompt — um `SkillSpec` espelhando `roles.py` é a costura. Mas NÃO 
 empacotar); (b) skill com SCRIPT executável = execução de código = Fase 2 atrás do hardening
 A1-A5, não é grátis; (c) só entra no roster se MEDIR melhor que persona-sozinha contra o gold
 (N>=5). Skill que não move o número não é adotada.
+
+## D11 — Subagent = persona portável + roster privado; é o ativo mais transportável (2026-07-11)
+Um subagent NÃO é código: é `persona (prompt) + modelo medido (config) + skill opcional`. A persona
+é 100% portável (texto MIT, é input) e roda em qualquer host — este `run_squad`, um AI Gateway, a
+chamada própria de outro projeto, ou de volta em Claude Code/Codex/OpenCode (de onde veio). O que
+viaja com o subagent é `{persona_file, slug, preço}`. MAS: portável ≠ confiável — só a persona COM
+linha de roster medida (N>=5, gold humano) é um subagent confiável; sem medição é persona portável
+de qualidade desconhecida. O roster é medido contra um gold específico → transfere como prior forte,
+revalide se a tarefa-alvo difere. Ver `docs/design/subagent-portability.md`.

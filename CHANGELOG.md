@@ -23,6 +23,13 @@
   latência; ORDENA por custo-benefício; NÃO rosteia (D5). CLI + `render_markdown`.
 - +18 testes herméticos (rulers novos + runner com `run_squad` real sobre thunks mockados,
   incl. idempotência do checkpoint); suíte total 122, 0 rede.
+- `rulers.top_bug_clean_ruler` — scoring de caso-limpo pelo veredito `TOP_BUG:` (imune à review
+  que NOMEIA o pitfall evitado; conserta o falso-positivo da `contains_none`). +1 teste (suíte 123).
+- `squad.make_openrouter_text_job` — parâmetro `max_tokens` (teto de saída: custo previsível +
+  comparação justa entre modelos de um painel).
+- docs: `design/flywheel-bootstrap.md` (loop auto-construtor, 2 eixos) e
+  `design/subagent-portability.md` (subagent = persona portável + roster privado; contrato de reuso).
+  Decisões D8-D11.
 
 ## 0.1.0 — 2026-07-08
 
