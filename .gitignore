@@ -19,6 +19,13 @@ _checkpoints/
 _spend_ledger.jsonl
 *.local.jsonl
 
+# MEDIÇÕES PRIVADAS (decisão 1: modulo publico = maquinaria + personas; edge medido fica FORA)
+# ground-truth e relatorios de eval sao a vantagem competitiva — nunca no repo publico.
+# rosters medidos entram por override privado AI_SQUAD_ROSTER_<ROLE>, nao commitados.
+ground_truth/
+_candidate_evals/
+rosters/
+
 # OS/editor
 .DS_Store
 Thumbs.db
