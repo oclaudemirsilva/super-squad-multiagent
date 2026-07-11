@@ -184,6 +184,38 @@ def contains_none_ruler(substrings: "Sequence[str]", *, strip_accents: bool = Tr
     return ruler
 
 
+_NO_BUG_MARKERS = ("none", "no bug", "no critical", "no issue", "no significant", "no security",
+                   "no vuln", "no problem", "correct", "nothing", "n/a", "no error", "no concern")
+
+
+def _top_bug_segment(text: str) -> "Optional[str]":
+    """Extrai a linha do veredito 'TOP_BUG:' (última ocorrência) — o compromisso final do modelo,
+    imune ao raciocínio/explicação que possa NOMEAR o pitfall evitado. None se ausente."""
+    up = (text or "").upper()
+    idx = up.rfind("TOP_BUG")
+    if idx == -1:
+        return None
+    return (text or "")[idx:].split("\n", 1)[0]
+
+
+def top_bug_clean_ruler() -> Ruler:
+    """Para CASO LIMPO (código correto): passa se a linha `TOP_BUG:` declara AUSÊNCIA de bug
+    (none/no critical/correct/...). Só olha o VEREDITO comprometido — não o corpo da review — então
+    'this correctly avoids the mutable default pitfall' NÃO conta como falso-positivo (o defeito que
+    a `contains_none` tinha). Sem linha TOP_BUG -> reprova (não seguiu o formato = inconclusivo,
+    fail-closed)."""
+    def ruler(text: str, gold: object = None) -> dict:
+        seg = _top_bug_segment(text)
+        if seg is None:
+            return {"pass": False, "label": "NO_TOP_BUG"}
+        low = _norm(seg)
+        clean = any(m in low for m in _NO_BUG_MARKERS)
+        return {"pass": clean, "label": "CLEAN" if clean else "FLAGGED",
+                "detail": {"top_bug": seg[:140]}}
+
+    return ruler
+
+
 def exact_match_ruler(*, normalize: bool = True) -> Ruler:
     """Passa se o texto == gold (normalizado por default: sem acento/caixa/espaço extra)."""
     def ruler(text: str, gold: object = None) -> dict:
@@ -260,6 +292,8 @@ def resolve_ruler(spec: "Optional[str]") -> "Optional[Ruler]":
         return contains_any_ruler(tuple(s.strip() for s in arg.split(",") if s.strip()))
     if name == "contains_none":
         return contains_none_ruler(tuple(s.strip() for s in arg.split(",") if s.strip()))
+    if name == "top_bug_clean":
+        return top_bug_clean_ruler()
     if name == "exact_match":
         return exact_match_ruler()
     if name == "keyword_verdict":

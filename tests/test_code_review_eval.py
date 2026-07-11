@@ -11,7 +11,7 @@ from tempfile import TemporaryDirectory
 from unittest import mock
 
 from super_squad import code_review_eval as cre
-from super_squad.rulers import contains_any_ruler, contains_none_ruler
+from super_squad.rulers import contains_any_ruler, contains_none_ruler, top_bug_clean_ruler
 from super_squad.squad import Job
 
 PERSONA = Path(__file__).resolve().parents[1] / "roles" / "vendor" / "code-reviewer.md"
@@ -58,6 +58,18 @@ class TestRulers(unittest.TestCase):
         r = contains_any_ruler(["injecao"])
         self.assertTrue(r("risco de injeção")["pass"])
 
+    def test_top_bug_clean_ruler(self):
+        r = top_bug_clean_ruler()
+        # a review CORRETA que NOMEIA o pitfall evitado NAO pode contar como over-flag (o bug antigo)
+        praise = ("This correctly avoids the mutable default argument pitfall.\n"
+                  "TOP_BUG: NONE, the code is correct.")
+        self.assertTrue(r(praise)["pass"])
+        # falso-positivo real: o veredito TOP_BUG acusa um bug em codigo limpo
+        fp = "TOP_BUG: The function uses a mutable default argument that is shared."
+        self.assertFalse(r(fp)["pass"])
+        # sem linha TOP_BUG -> fail-closed
+        self.assertFalse(r("some rambling with no verdict")["pass"])
+
 
 class TestRunnerAggregation(unittest.TestCase):
     def _run(self, tmp, text_for, **kw):
@@ -75,8 +87,10 @@ class TestRunnerAggregation(unittest.TestCase):
         # bad: MISS no bug (texto vazio de achado) e over-flag no limpo (grita sql injection).
         def text_for(slug, case_id):
             if slug == "prov/good":
-                return "Critical: SQL injection via f-string." if case_id == "buggy1" else "Looks clean."
-            return "Nothing found." if case_id == "buggy1" else "Warning: SQL injection everywhere!"
+                return ("Critical: SQL injection via f-string." if case_id == "buggy1"
+                        else "Looks clean.\nTOP_BUG: NONE")
+            return ("Nothing found." if case_id == "buggy1"
+                    else "TOP_BUG: SQL injection everywhere!")
         with TemporaryDirectory() as tmp:
             summary, out_path = self._run(tmp, text_for)
             good = summary["by_slug"]["prov/good"]

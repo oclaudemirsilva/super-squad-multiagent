@@ -14,7 +14,7 @@ from pathlib import Path
 
 from super_squad.roles import load_role
 from super_squad.squad import run_squad, make_openrouter_text_job
-from super_squad.rulers import contains_any_ruler, contains_none_ruler
+from super_squad.rulers import contains_any_ruler, top_bug_clean_ruler
 from super_squad.role_shadow import already_checkpointed, append_checkpoint_line
 
 
@@ -115,7 +115,8 @@ def run_code_review_eval(
         if case["kind"] == "buggy":
             passed = contains_any_ruler(case["detect_any"])(row["text"])["pass"]
         else:
-            passed = contains_none_ruler(case["forbid_any"])(row["text"])["pass"]
+            # caso limpo: veredito TOP_BUG (imune a review que NOMEIA o pitfall evitado)
+            passed = top_bug_clean_ruler()(row["text"])["pass"]
         scored_rows.append({**row, "passed": passed})
 
     # Aggregate by slug
