@@ -150,6 +150,40 @@ def contains_all_ruler(substrings: "Sequence[str]", *, strip_accents: bool = Tru
     return ruler
 
 
+def contains_any_ruler(substrings: "Sequence[str]", *, strip_accents: bool = True) -> Ruler:
+    """Passa se QUALQUER uma das `substrings` aparece no texto (comparação sem acento/caixa por
+    default). Peer de `contains_all_ruler` para o caso 'detectou o achado?' quando há SINÔNIMOS
+    aceitáveis — ex.: um reviewer pega o bug se cita 'sql injection' OU 'parameterize' OU
+    'prepared statement'. Reporta qual bateu (`detail.hit`) e o conjunto testado."""
+    def ruler(text: str, gold: object = None) -> dict:
+        hay = _norm(text) if strip_accents else (text or "").lower()
+        norm = (lambda s: _norm(s)) if strip_accents else (lambda s: s.lower())
+        hit = next((s for s in substrings if norm(s) in hay), None)
+        return {"pass": hit is not None,
+                "label": "HIT" if hit is not None else "MISS",
+                "detail": {"hit": hit, "tested": list(substrings)}}
+
+    return ruler
+
+
+def contains_none_ruler(substrings: "Sequence[str]", *, strip_accents: bool = True) -> Ruler:
+    """Passa se NENHUMA das `substrings` aparece no texto (comparação sem acento/caixa por
+    default). Inverso de `contains_any_ruler`: para auditar over-flag / falso-positivo GROSSO —
+    ex.: código neutro (sem superfície de segurança) onde 'sql injection'/'command injection'
+    não têm razão de aparecer, nem negadas. Reporta as frases proibidas encontradas (`detail.found`).
+    Sinal COARSE por design (uma frase de ataque citada mesmo em 'no X here' reprova) — use com
+    substrings específicas o bastante pra que a mera menção já seja suspeita."""
+    def ruler(text: str, gold: object = None) -> dict:
+        hay = _norm(text) if strip_accents else (text or "").lower()
+        norm = (lambda s: _norm(s)) if strip_accents else (lambda s: s.lower())
+        found = [s for s in substrings if norm(s) in hay]
+        return {"pass": not found,
+                "label": "CLEAN" if not found else "FLAGGED",
+                "detail": {"found": found}}
+
+    return ruler
+
+
 def exact_match_ruler(*, normalize: bool = True) -> Ruler:
     """Passa se o texto == gold (normalizado por default: sem acento/caixa/espaço extra)."""
     def ruler(text: str, gold: object = None) -> dict:
@@ -206,7 +240,8 @@ def set_f1_ruler(threshold: float = 1.0, *, splitter: str = r"[\n,;]+") -> Ruler
 def resolve_ruler(spec: "Optional[str]") -> "Optional[Ruler]":
     """Mapeia uma string de suite JSON -> régua. `None`/vazio -> None (célula vira human-review).
     Formas: `json_valid` | `json_valid:sexo,idade` · `numeric_close` | `numeric_close:0.01` ·
-    `length_window:220:280` · `contains_all:frontal,topo,coroa` · `exact_match` ·
+    `length_window:220:280` · `contains_all:frontal,topo,coroa` ·
+    `contains_any:sqli,injection,parameterize` · `contains_none:sql injection,rce` · `exact_match` ·
     `keyword_verdict` | `keyword_verdict:GOOD,OK,BAD` · `set_f1` | `set_f1:0.8`."""
     if not spec:
         return None
@@ -221,6 +256,10 @@ def resolve_ruler(spec: "Optional[str]") -> "Optional[Ruler]":
         return length_window_ruler(int(lo), int(hi))
     if name == "contains_all":
         return contains_all_ruler(tuple(s.strip() for s in arg.split(",") if s.strip()))
+    if name == "contains_any":
+        return contains_any_ruler(tuple(s.strip() for s in arg.split(",") if s.strip()))
+    if name == "contains_none":
+        return contains_none_ruler(tuple(s.strip() for s in arg.split(",") if s.strip()))
     if name == "exact_match":
         return exact_match_ruler()
     if name == "keyword_verdict":

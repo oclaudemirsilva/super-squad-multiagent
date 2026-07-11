@@ -12,6 +12,17 @@
   ratings humanos de VÁRIOS colaboradores agregados por mediana — nunca modelo-julga-modelo
   (D6/D7). Dry-run por default; `--preflight` compõe a guarda B6. Sugere, mas não rosteia (D5).
 - +25 testes herméticos (rulers + bench); suíte total 104, 0 rede.
+- `rulers` — +`contains_any` (recall com sinônimos: passa se QUALQUER frase aparece) e
+  `contains_none` (over-flag GROSSO: passa se NENHUMA frase de ataque aparece); ambas no
+  `resolve_ruler`. São o instrumento do papel code-reviewer (detecção × over-flag).
+- `code_review_eval` — runner de medição de UM papel consultivo cruzando N modelos, N>=5
+  repetições/caso, contra ground-truth privado, com teto de gasto e checkpoint idempotente
+  (resume não re-paga). Persona que declara tools de construtor é medida em modo CONSULTIVO
+  (diff inline, sem disco) — a classificação single-shot governa o RUNTIME, não a MEDIÇÃO (D8).
+  Agrega detecção (recall do bug plantado) × over-flag (falso-positivo em diff limpo) × custo ×
+  latência; ORDENA por custo-benefício; NÃO rosteia (D5). CLI + `render_markdown`.
+- +18 testes herméticos (rulers novos + runner com `run_squad` real sobre thunks mockados,
+  incl. idempotência do checkpoint); suíte total 122, 0 rede.
 
 ## 0.1.0 — 2026-07-08
 
