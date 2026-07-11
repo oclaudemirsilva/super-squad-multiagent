@@ -58,6 +58,16 @@ class TestRulers(unittest.TestCase):
         r = contains_any_ruler(["injecao"])
         self.assertTrue(r("risco de injeção")["pass"])
 
+    def test_top_bug_forbids_distinguishes_hallucination_from_thoroughness(self):
+        from super_squad.rulers import top_bug_forbids_ruler
+        r = top_bug_forbids_ruler(["timing attack", "non-constant"])
+        # alucina a vuln FALSA específica -> over-flag
+        self.assertFalse(r("TOP_BUG: vulnerable to a timing attack via string compare")["pass"])
+        # levanta preocupação DIFERENTE e defensável -> NÃO é over-flag (minúcia, não alucinação)
+        self.assertTrue(r("TOP_BUG: consider adding input validation on sig")["pass"])
+        # diz que é seguro -> clean
+        self.assertTrue(r("TOP_BUG: NONE")["pass"])
+
     def test_top_bug_clean_ruler(self):
         r = top_bug_clean_ruler()
         # a review CORRETA que NOMEIA o pitfall evitado NAO pode contar como over-flag (o bug antigo)

@@ -216,6 +216,26 @@ def top_bug_clean_ruler() -> Ruler:
     return ruler
 
 
+def top_bug_forbids_ruler(forbid_phrases: "Sequence[str]") -> Ruler:
+    """CASO LIMPO (mais preciso que `top_bug_clean_ruler`): passa se a linha `TOP_BUG:` NÃO nomeia
+    nenhuma de `forbid_phrases` — a vulnerabilidade ESPECÍFICA que não existe. Um auditor pode
+    levantar uma preocupação DIFERENTE e defensável (ex.: "add input validation") sem alucinar a
+    vuln plantada-ausente; isso NÃO é over-flag. Só conta over-flag se o veredito nomear a vuln
+    falsa específica. Distingue alucinação de minuciosidade — o que `==NONE` não fazia."""
+    fset = tuple(forbid_phrases)
+
+    def ruler(text: str, gold: object = None) -> dict:
+        seg = _top_bug_segment(text)
+        if seg is None:
+            return {"pass": False, "label": "NO_TOP_BUG"}
+        low = _norm(seg)
+        named = [p for p in fset if _norm(p) in low]
+        return {"pass": not named, "label": "CLEAN" if not named else "OVERFLAG",
+                "detail": {"named": named, "top_bug": seg[:140]}}
+
+    return ruler
+
+
 def exact_match_ruler(*, normalize: bool = True) -> Ruler:
     """Passa se o texto == gold (normalizado por default: sem acento/caixa/espaço extra)."""
     def ruler(text: str, gold: object = None) -> dict:
@@ -294,6 +314,8 @@ def resolve_ruler(spec: "Optional[str]") -> "Optional[Ruler]":
         return contains_none_ruler(tuple(s.strip() for s in arg.split(",") if s.strip()))
     if name == "top_bug_clean":
         return top_bug_clean_ruler()
+    if name == "top_bug_forbids":
+        return top_bug_forbids_ruler(tuple(s.strip() for s in arg.split(",") if s.strip()))
     if name == "exact_match":
         return exact_match_ruler()
     if name == "keyword_verdict":
