@@ -33,7 +33,7 @@ def _fake_job_factory(text_for):
     """Devolve um make_job fake: cada Job.run() entrega o texto que `text_for(slug, case_id)` der,
     com custo fixo — determinístico, sem rede."""
     def make_job(key, prompt, model, pin, pout, *, system=None, temperature=0.2,
-                 timeout=120, api_key=None):
+                 timeout=120, api_key=None, max_tokens=None):
         case_id = key.split("::")[0]
         text = text_for(model, case_id)
         return Job(key=key, run=lambda: ({"model": model, "text": text}, 0.002), model=model)

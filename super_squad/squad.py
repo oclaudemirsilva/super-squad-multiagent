@@ -223,8 +223,12 @@ def make_openrouter_text_job(
     temperature: float = 0.2,
     timeout: int = 120,
     api_key: Optional[str] = None,
+    max_tokens: Optional[int] = None,
 ) -> Job:
     """Monta um Job que chama um modelo OpenRouter e devolve `({model, text}, custo_usd)`.
+
+    `max_tokens` (opcional) limita a saída — útil pra custo previsível E comparação JUSTA (todo
+    modelo do painel com o mesmo teto de saída; um modelo verboso não distorce custo/veredito).
 
     Import LAZY de openrouter (mantém o motor sem dependência de import no topo e facilita o
     mock nos testes: monkeypatch em `super_squad.openrouter.openrouter_messages_raw`)."""
@@ -232,7 +236,8 @@ def make_openrouter_text_job(
         from .openrouter import openrouter_messages_raw
         data = openrouter_messages_raw(
             [{"role": "user", "content": prompt}],
-            system=system, model=model, temperature=temperature, timeout=timeout, api_key=api_key,
+            system=system, model=model, temperature=temperature, timeout=timeout,
+            api_key=api_key, max_tokens=max_tokens,
         )
         try:
             text = data["choices"][0]["message"]["content"] or ""

@@ -30,6 +30,7 @@ def run_code_review_eval(
     workers=6,
     temperature=0.4,
     timeout=120,
+    max_tokens=None,
 ) -> dict:
     """Run the code review evaluation across models."""
     # Load input data
@@ -79,6 +80,7 @@ def run_code_review_eval(
                         temperature=temperature,
                         timeout=timeout,
                         api_key=api_key,
+                        max_tokens=max_tokens,
                     )
                 )
 
