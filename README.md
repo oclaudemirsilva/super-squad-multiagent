@@ -17,7 +17,9 @@ Python package `super_squad/`.
 | `role_shadow.py` | **The FISCAL:** shadow audit engine. `RoleAuditSpec(role, items_fn, deterministic_fn, make_agent_fn, gold_fn)` + `run_role_audit()` writes one JSONL line per item comparing deterministic ruler vs paid agent vs human gold, idempotent by key (re-runs never re-pay), `key_suffix` for periodic re-audit epochs (e.g. "::2026-08"), returns `agreement_rate`, `det_gold_acc`, `agent_gold_acc`, `spent_usd`. `register_role()` + `make_shadow_runner()` bridge a role into the maestro as workflow `"shadow_<role>"`. |
 | `candidate_eval.py` | Evaluate a **CANDIDATE** model slug against your ground-truths role by role **WITHOUT** ever touching the incumbent roster. `run_candidate_eval(slug, pin, pout, evaluators={...}, budget_usd=...)` → JSON report; promotion is a **HUMAN** decision informed by the report. `EvalCheckpoint` gives idempotent re-runs. |
 | `code_writer.py` | The `code` role: `make_squad_code_writer(budget_usd)` → `writer_fn(spec)` → `{code, raw, cost_usd}`. A cheap model drafts code from a spec; a strong reviewer (human or gating model) audits before applying. Defends against markdown fences the model adds despite instructions. |
-| `rulers.py` | Ready-made **deterministic rulers** for the fiscal (one per role was always DIY): `json_valid` (strict about markdown fences), `numeric_close` (pulls the numeric answer out of prose, pt-BR/en), `length_window`, `contains_all`, `exact_match`, `keyword_verdict`, `set_f1` + `resolve_ruler` for JSON suites. Pure, stdlib-only. |
+| `roles.py` | **The subagent layer.** Ingests a persona (VoltAgent-style frontmatter + body = system prompt) → `RoleSpec` (`load_role`/`load_roles_dir`); `classify_single_shot` splits *consultative* (reviewer/auditor/analyst — runs on the engine today, inert) from *builder* (declares Write/Edit/Bash — needs the Phase-2 runtime); `make_role_job` turns a single-shot persona + model into a `run_squad` job. Domain-blind: it transports the prompt, it doesn't know what the role does. **A subagent = persona (portable prompt) + measured model (private roster) + optional skill** — see `docs/design/subagent-portability.md`. |
+| `code_review_eval.py` | Reference **per-role measurement runner** (template for new roles): runs one consultative persona across N models, N>=5 reps/case, against a private gold, with a spend cap and an idempotent checkpoint; scores detection (`contains_any`) × over-flag (`top_bug_clean`) × cost × latency; orders by cost-benefit; **never rosters** (D5). |
+| `rulers.py` | Ready-made **deterministic rulers** for the fiscal (one per role was always DIY): `json_valid` (strict about markdown fences), `numeric_close` (pulls the numeric answer out of prose, pt-BR/en), `length_window`, `contains_all`, `contains_any`, `contains_none`, `exact_match`, `keyword_verdict`, `set_f1`, `top_bug_clean` (clean-case verdict by the committed `TOP_BUG:` line) + `resolve_ruler` for JSON suites. Pure, stdlib-only. |
 | `bench.py` | **Roster bootstrap (step 0):** fan a task **suite** across a model **pool** → matrix of cost / latency / quality + per-role leaderboard + suggested roster. Quality comes only from a deterministic ruler **or** multiple collaborators' ratings aggregated by median — never model-judges-model (D6/D7). Dry-run by default; `--preflight` composes guard B6; it **suggests** but never rosters (D5). |
 
 ## The methodology
@@ -59,9 +61,44 @@ two ruler×agent disagreements are the audit product that goes to human review, 
 flagged a real live-vs-configured price drift on one of the two slugs. That one run exercises
 the ruler, the panel, the gold accounting, and guard B6.
 
+## Reusing a subagent in another project
+
+A subagent is not code — it is `persona (prompt) + measured model (config) + optional skill`, so it
+travels as config, not a dependency. To reuse a **measured** subagent in another project, carry:
+
+1. the **persona** file (`roles/vendor/<role>.md`, public, MIT);
+2. the **roster line** you measured (`<slug>:<price_in>:<price_out>`, private — your ground-truth is your edge, D1);
+3. any runner that injects the persona's `system_prompt` into a model call.
+
+```python
+from super_squad import roles
+from super_squad.squad import run_squad
+
+spec = roles.load_role("roles/vendor/code-reviewer.md")           # portable persona (MIT)
+job  = roles.make_role_job("code-reviewer", spec, my_input,
+                           model="<your measured slug>", price_in_per_mtok=..., price_out_per_mtok=...)
+report = run_squad([job], budget_usd=0.05)                        # run it anywhere
+verdict = report.results[0].value["text"]
+```
+
+The same subagent also runs from another project's own OpenRouter call (just set `system=spec.system_prompt`,
+`model=<slug>`), from an AI gateway, or back inside Claude Code / Codex / OpenCode (the personas came from
+those catalogs). **Portable ≠ trustworthy:** only a persona with a *measured* roster line (N>=5 vs your gold)
+is a subagent you can trust; without measurement it is a portable prompt of unknown quality/cost. The roster
+was measured against a specific gold — it transfers as a strong prior; **re-validate** (`candidate_eval`) if
+the target task differs materially. Today all subagents are consultative (read & judge); builders are Phase 2.
+
+## Where the architecture lives (read next, if you are an agent landing here)
+
+- `DECISIONS.md` — the design decisions D1–D11 (why the roster ships empty, why measurement is private, etc.).
+- `docs/design/subagent-portability.md` — what a subagent is and the full reuse contract.
+- `docs/design/flywheel-bootstrap.md` — the self-improving loop: measure roles in dependency order (reviewer → qa → architect → security → debugger → builders), on OpenRouter, cheapest model that matches the frontier.
+- `docs/design/opencode-builder-runtime.md` — the Phase-2 builder-runtime seam (not implemented).
+- `docs/security/threat-model.md` — A1–A5 execution hardening (hard pre-reqs before any builder runs).
+
 ## What stays yours
 
-Your roster, your golds, your checkpoints, and your spend ledgers are user data, not repo data. The `.gitignore` already excludes runtime artifacts; `_candidate_evals` reports are worth versioning in **your** project as the audit trail of promotion decisions.
+Your roster, your golds, your checkpoints, and your spend ledgers are user data, not repo data. The `.gitignore` already excludes runtime artifacts (`ground_truth/`, `rosters/`, `_candidate_evals/`); those reports are worth versioning in **your** private project as the audit trail of promotion decisions.
 
 ## License
 
