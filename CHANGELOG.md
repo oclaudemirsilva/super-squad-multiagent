@@ -30,6 +30,12 @@
 - docs: `design/flywheel-bootstrap.md` (loop auto-construtor, 2 eixos) e
   `design/subagent-portability.md` (subagent = persona portável + roster privado; contrato de reuso).
   Decisões D8-D11.
+- `run_role` — **a PORTA DA FRENTE**: `run_role(role, input)` (ou CLI `python -m super_squad.run_role
+  <papel> "<input>"`) carrega a persona, escolhe o modelo rosteado (env `AI_SQUAD_ROSTER_<PAPEL>`) e
+  devolve o veredito. Consultivo (injeta system prompt, nenhuma tool executa). É o que permite OUTRO
+  projeto/sessão usar um subagent medido com UMA chamada. `panel=True` roda todo o roster. +4 testes.
+- `registry`: env de override normaliza hífen→underscore (`AI_SQUAD_ROSTER_CODE_REVIEWER`, settável no
+  shell; forma antiga com hífen ainda lida como fallback). Suíte 127.
 
 ## 0.1.0 — 2026-07-08
 

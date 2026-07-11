@@ -11,7 +11,8 @@ pré-voo (`preflight.assert_roster_live`) confere slug vivo + drift de preço an
 cada lote, então um preço desatualizado é reportado, não silencioso.
 
 Override SEM tocar código (útil em CI/experimentos): env `AI_SQUAD_ROSTER_<ROLE>` =
-CSV `slug1:pin1:pout1,slug2:pin2:pout2,...`.
+CSV `slug1:pin1:pout1,slug2:pin2:pout2,...`. `<ROLE>` = papel em MAIÚSCULAS com hífen->underscore
+(ex.: papel `code-reviewer` -> env `AI_SQUAD_ROSTER_CODE_REVIEWER`, settável no shell).
 
 Pesos de voto (`SQUAD_ROLE_WEIGHTS`, opcional): só depois de MEDIR cegueira/acerto por
 modelo (ver `squad.aggregate_panel_verdicts` — o peso corrige "2 cegos vencem 1 correto"
@@ -40,7 +41,10 @@ def squad_roster(role: str) -> "tuple[tuple[str, float, float], ...]":
     `AI_SQUAD_ROSTER_<ROLE>` = CSV `slug1:pin1:pout1,...` (stdlib-only, sem parser externo).
     Papel desconhecido -> tupla vazia (fail-soft; o chamador decide o que fazer com painel
     vazio — `aggregate_panel_verdicts` já trata `n_valid=0` como fail-closed)."""
-    override = os.getenv(f"AI_SQUAD_ROSTER_{role.upper()}")
+    # Nome de env com HÍFEN não é settável no shell (`export A-B=` falha) -> normaliza p/
+    # underscore (forma settável), com fallback à forma antiga (com hífen) por compatibilidade.
+    override = (os.getenv(f"AI_SQUAD_ROSTER_{role.upper().replace('-', '_')}")
+                or os.getenv(f"AI_SQUAD_ROSTER_{role.upper()}"))
     if override:
         out = []
         for part in override.split(","):

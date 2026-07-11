@@ -70,20 +70,27 @@ travels as config, not a dependency. To reuse a **measured** subagent in another
 2. the **roster line** you measured (`<slug>:<price_in>:<price_out>`, private — your ground-truth is your edge, D1);
 3. any runner that injects the persona's `system_prompt` into a model call.
 
-```python
-from super_squad import roles
-from super_squad.squad import run_squad
+The simplest path is the **front door** `run_role` — it loads the persona, picks the rostered model,
+runs it consultatively (system prompt injected, no tools execute), and returns the verdict:
 
-spec = roles.load_role("roles/vendor/code-reviewer.md")           # portable persona (MIT)
-job  = roles.make_role_job("code-reviewer", spec, my_input,
-                           model="<your measured slug>", price_in_per_mtok=..., price_out_per_mtok=...)
-report = run_squad([job], budget_usd=0.05)                        # run it anywhere
-verdict = report.results[0].value["text"]
+```python
+from super_squad.run_role import run_role   # needs env AI_SQUAD_ROSTER_CODE_REVIEWER + OPENROUTER_API_KEY
+out = run_role("code-reviewer", my_code_or_diff, budget_usd=0.05)
+print(out["model"], out["text"])            # titular verdict; pass panel=True to run the whole roster
 ```
 
-The same subagent also runs from another project's own OpenRouter call (just set `system=spec.system_prompt`,
+Or from the shell, one command (any session/agent, no internals):
+
+```bash
+export OPENROUTER_API_KEY=sk-or-...
+export AI_SQUAD_ROSTER_CODE_REVIEWER="<your measured slug>:<pin>:<pout>"   # private roster line
+python -m super_squad.run_role code-reviewer "Review this: <code>"
+```
+
+The same subagent also runs from another project's own OpenRouter call (`system=spec.system_prompt`,
 `model=<slug>`), from an AI gateway, or back inside Claude Code / Codex / OpenCode (the personas came from
-those catalogs). **Portable ≠ trustworthy:** only a persona with a *measured* roster line (N>=5 vs your gold)
+those catalogs). `run_role` is **consultative** (read & judge, no tool execution) — for a persona that
+declares builder tools it runs as an advisor; actual building is Phase 2. **Portable ≠ trustworthy:** only a persona with a *measured* roster line (N>=5 vs your gold)
 is a subagent you can trust; without measurement it is a portable prompt of unknown quality/cost. The roster
 was measured against a specific gold — it transfers as a strong prior; **re-validate** (`candidate_eval`) if
 the target task differs materially. Today all subagents are consultative (read & judge); builders are Phase 2.
