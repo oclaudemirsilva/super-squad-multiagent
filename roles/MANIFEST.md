@@ -13,16 +13,21 @@ Fase 1 = **consultivo** (lê e julga, roda no motor JÁ, mensurável) · Fase 2 
 | # | Papel | O que faz | Persona | Roster |
 |---|---|---|---|---|
 | 1 | **code-reviewer** | gate de correção/segurança de diff | ✅ | ✅ **medido** (titular ativo, privado) |
-| 2 | **qa-test-judge** | julga cobertura e qualidade de testes | ⬜ | ⬜ |
-| 3 | **architect-reviewer** | design, acoplamento, limites de módulo | ⬜ | ⬜ |
-| 4 | **security-auditor** | vulnerabilidades, superfície de ataque | ✅ | 🔄 medição provisória |
-| 5 | **debugger** | diagnóstico de causa-raiz a partir de sintoma/stack | ⬜ | ⬜ |
-| 6 | **performance-auditor** | gargalos, custo, latência, complexidade | ⬜ | ⬜ |
-| 7 | **api-designer** | contratos/schema/versionamento (casa com API-first) | ⬜ | ⬜ |
-| 8 | **eval-engineer** | julga prompts/saídas contra critério — meta-útil pro próprio exército | ⬜ | ⬜ |
-| 9 | **technical-writer** | docs, ADRs, clareza | ⬜ | ⬜ |
-| 10 | **data-analyst** | métricas, leitura de medição, tabelas | ⬜ | ⬜ |
-| 11 | **competitive-analyst** | pesquisa de mercado/produto (venture) | ✅ | ⬜ |
+| 2 | **qa-test-judge** | julga cobertura e qualidade de testes | ✅ autorada | 🔄 semeado |
+| 3 | **architect-reviewer** | design, acoplamento, limites de módulo | ✅ autorada | 🔄 semeado |
+| 4 | **security-auditor** | vulnerabilidades, superfície de ataque | ✅ | 🔄 semeado |
+| 5 | **debugger** | diagnóstico de causa-raiz a partir de sintoma/stack | ✅ autorada | 🔄 semeado |
+| 6 | **performance-auditor** | gargalos, custo, latência, complexidade | ✅ autorada | 🔄 semeado |
+| 7 | **api-designer** | contratos/schema/versionamento (casa com API-first) | ✅ autorada | 🔄 semeado |
+| 8 | **eval-engineer** | julga prompts/saídas contra critério — meta-útil pro próprio exército | ✅ autorada | 🔄 semeado |
+| 9 | **technical-writer** | docs, ADRs, clareza | ✅ autorada | 🔄 semeado |
+| 10 | **data-analyst** | métricas, leitura de medição, tabelas | ✅ autorada | 🔄 semeado |
+| 11 | **competitive-analyst** | pesquisa de mercado/produto (venture) | ✅ | 🔄 semeado |
+
+> Estado 2026-07-12: **11/11 papéis Fase-1 com persona e roster semeado (prior chinês) → prontos p/
+> `run_roles` em paralelo AGORA**. "autorada" = draft do workhorse chinês com gate humano (proveniência
+> distinta do catálogo — ver `roles/vendor/README.md`). Medição real (que troca *semeado* → *medido*) é
+> gradual, quando fizer sentido (D9). Só `code-reviewer` está medido/ativo.
 
 ## Fase 2 — construtor (o horizonte, gated)
 
