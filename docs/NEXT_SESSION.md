@@ -69,6 +69,23 @@ Para os ativos (writer/test/debugger) a régua é OBJETIVA — não se autora um
   de-dup por fonte (group_key=source), senão o número mente pra cima. Vale a lição do split-por-source já medida.
 - Para papéis de JUÍZO (qa over-flag, security): baratear o humano via COLHER (git/issues/CVEs) + DRAFT→ratificar
   + o gate `gold_preflight` (D12). Não elimina o humano; torna-o minutos, não horas.
+
+### ★ FONTES EXTERNAS DE VERDADE (decidido 07-12) — expertise que não temos + golds sem autorar
+Trazer verdade HUMANA/institucional de fora enriquece o repo (mais papéis medidos, expertise emprestada).
+Ordem de adoção:
+1. **`security-auditor` over-flag (destrava A2):** OWASP Benchmark + NIST Juliet/SARD — código rotulado
+   vulnerável vs. seguro em pares = exatamente o eixo de over-flag que falta. + um held-out FRESCO por cima.
+2. **`code-writer`/`debugger` (oráculo executável):** BugsInPy / Defects4J / QuixBugs (bug real + teste) — via o
+   `execution_ruler`. Mutation testing = bugs objetivos sem rótulo.
+3. **Harvester de CVEs recentes + commits frescos** de repos que NÃO são nossos e o modelo não viu → fonte
+   contínua não-memorizada.
+**4 TRAVAS (a nº1 é a que mais importa):**
+- (1) **VAZAMENTO/memorização** = maior risco: dataset público famoso mede "memorizou?", não "raciocina?" →
+  usar como CALIBRAÇÃO/smoke, NUNCA como gold de PROMOÇÃO. O gold que firma titular fica FRESCO/privado + held-out.
+- (2) **Só origem HUMANA/institucional** — dataset gerado por LLM = importar autofagia dos outros. Verificar proveniência.
+- (3) **Licença POR FONTE** (D2) — ler antes de empacotar (alguns são research-only).
+- (4) **Transferência de domínio** (D11) — gold externo = prior fraco; mede lá, REVALIDA no nosso domínio.
+Fronteira: fonte externa HUMANA = enriquece; gerada por modelo, ou de promoção sem held-out fresco = perigo.
   4. **`test-author`** — escreve testes p/ a mudança → o loop se auto-verifica.
   5. **`debugger`** — diagnostica falhas no loop (persona existe; falta gold).
 - **Onda 3 — meta/estrutura (guardam a evolução):**
