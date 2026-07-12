@@ -35,10 +35,13 @@ Legenda: ✅ feito · 🔄 em andamento · ⬜ a fazer · 🔒 bloqueado (pré-r
 
 ## Track D — Skills (a CAPACIDADE, D10)
 
-- ⬜ **D1.** Ingestor `SkillSpec` (espelha `roles.py`): injeta procedimento/playbook num job.
-- ⬜ **D2.** Licença POR-skill (catálogo MIT não cobre o upstream linkado — ler antes de empacotar).
-- ⬜ **D3.** Medir `persona+skill` vs `persona-sozinha` (N≥5); skill que não move o número não entra.
-- 🔒 **D4.** Skill com SCRIPT executável = execução de código → Fase 2 (atrás do hardening A1–A5).
+- ✅ **D1.** `skills.py` — ingestor `SkillSpec` (espelha `roles.py`, reusa o parser): `compose_system`
+  funde persona⊕skill. +7 testes.
+- ⬜ **D2.** Licença POR-skill (catálogo MIT não cobre o upstream linkado — ler antes de empacotar). Registrado
+  na docstring; a checagem é humana (o módulo não baixa/empacota, só ingere arquivo local).
+- ⬜ **D3.** Medir `persona+skill` vs `persona-sozinha` (N≥5) via `role_eval`; skill que não move o número não entra.
+- ✅ **D4.** Gate no lugar: `compose_system` RECUSA skill que executa código (`requires_script`) em single-shot
+  (`SkillGateError`) — script/tool-de-construtor = Fase 2 atrás do hardening A1–A5.
 
 ## Track E — Construtores Fase 2 (agentic — o mais ARRISCADO, gated)
 
