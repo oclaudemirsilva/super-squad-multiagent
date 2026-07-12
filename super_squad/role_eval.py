@@ -76,6 +76,7 @@ def run_role_eval(
     temperature=0.4,
     timeout=120,
     max_tokens=None,
+    system_suffix=None,
     clean_preflight_judges=None,
     preflight_pool=False,
     preflight_pool_fn: "Optional[Callable]" = None,
@@ -99,6 +100,12 @@ def run_role_eval(
         cases = json.load(f)
     persona = load_role_fn(persona_path)
     system = persona.system_prompt
+    # Neutralizador de RUÍDO DE PROTOCOLO (opt-in): personas de catálogo VERBOSAS mandam "query context
+    # manager first" e alguns modelos OBEDECEM — emitem um pedido de contexto em vez de fazer a tarefa,
+    # confundindo a medição (o modelo parece fraco, mas é o instrumento). Um sufixo de sistema task-forcing
+    # ("você já tem todo o contexto; faça a tarefa direto") corrige o confound SEM tocar o gold humano.
+    if system_suffix:
+        system = f"{system.strip()}\n\n{system_suffix.strip()}"
     n = n_per_case or cases["n_per_case"]
 
     if not pool:

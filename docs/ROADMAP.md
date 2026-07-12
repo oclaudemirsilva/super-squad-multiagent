@@ -11,7 +11,12 @@ Legenda: ✅ feito · 🔄 em andamento · ⬜ a fazer · 🔒 bloqueado (pré-r
 - ✅ **A1. Papel #1 `code-reviewer`** — gold duro simétrico (6 bugs + 4 gêmeos-limpos), medido N≥10;
   workhorse custo-frontier identificado. *Pendente humano:* cravar a promoção (D5).
 - 🔄 **A2. Papel #2 `security-auditor`** — firmar contra a barra frontier única (gold já existe; re-medir).
-- ⬜ **A3. Papel #3 `qa/test-judge`** — autorar gold (D6, mão humana) + vendorizar persona + medir.
+- 🔄 **A3. Papel #3 `qa/test-judge`** — gold DRAFT hand-revisado + medido EXPLORATÓRIO (recall-only, N=5,
+  pool all-Chinese). ACHADO HONESTO: as réguas iniciais eram estreitas demais e SUB-contavam respostas
+  CORRETAS (um modelo forte dizia "does not verify that dividing by zero raises ValueError" e a régua
+  marcava como miss) — pego lendo os outputs à mão; réguas dos casos 1&2 alargadas por domínio e
+  re-scored do cache ($0). LIMITE: gold é all-buggy → mede recall, NÃO over-flag → NÃO promove. BLOQUEADO
+  em humano: bênção do gold DRAFT (D6) + autorar casos-limpos (eixo over-flag) + régua verdict-aware.
 - ⬜ **A4. Papel #4 `architect-reviewer`** — gold + medir.
 - ⬜ **A5. Papel #5 `debugger`** — gold + medir.
 - ✅ **A6. Gate anti-erro-de-autor** (`gold_preflight`) — veta caso-limpo "não-limpo" antes de gastar (D12).
@@ -29,6 +34,11 @@ Legenda: ✅ feito · 🔄 em andamento · ⬜ a fazer · 🔒 bloqueado (pré-r
   (`--no-preflight` desliga). Injetável → teste hermético. +6 testes; verificado live (slug morto ABORTA
   antes de gastar).
 
+- ✅ **B4.** `role_eval(system_suffix=...)` — neutralizador opt-in de RUÍDO DE PROTOCOLO. Personas de
+  catálogo verbosas mandam "query context manager first" e alguns modelos OBEDECEM (emitem pedido de
+  contexto em vez de auditar) → confundem a medição. Um sufixo task-forcing corrige SEM tocar o gold humano.
+  Descoberto medindo A2 (o titular atual "falhava" só por emitir JSON de pedido-de-contexto). +1 teste.
+
 ## Track C — União com ruflo (o SUBSTRATO, D14)
 
 - ✅ **C0.** Seam desenhado (`docs/design/ruflo-union-routing-seam.md`); ruflo confirmado 3-tier só-Claude.
@@ -36,6 +46,11 @@ Legenda: ✅ feito · 🔄 em andamento · ⬜ a fazer · 🔒 bloqueado (pré-r
   + booster → $0; senão → titular medido) + `NullBoosterAdapter` (ruflo não plugado → fallback gracioso pro
   modelo). +7 testes. Falta o `BoosterAdapter` REAL (WASM/ruflo) — plugar + MEDIR o ganho (depende de C2).
 - 🔒 **C2.** Ligar o MCP do ruflo (`claude mcp add ruflo …`, USER) + `memory-bridge` (Graph-RAG cross-sessão).
+  VERIFICADO 07-12: neste boot o ruflo NÃO está conectado como MCP server (`claude mcp list` só mostra
+  Google Drive/Gmail/Calendar) e não há binário de booster no PATH — só os agent-subtypes/skills do plugin.
+  Além do `mcp add`, falta uma COSTURA callable-de-Python: o `routing.py` é lib stdlib standalone e não
+  alcança um tool MCP do Claude Code direto → o `BoosterAdapter` REAL precisa do booster exposto por
+  HTTP/CLI/WASM. Dois pré-reqs humanos, não-triviais.
 - ⬜ **C3.** Experimento N≥5, 3 braços: (A) Super Squad só · (B) +booster $0 · (C) +memória ruflo. Medir o ganho.
 - ⬜ **C4.** Plugar SÓ o braço que mover o número (mesmo gate do D10). Se não move, fica fora.
 

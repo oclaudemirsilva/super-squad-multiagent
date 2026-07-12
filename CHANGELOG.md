@@ -2,6 +2,12 @@
 
 ## Não lançado
 
+- **B4** — `role_eval(system_suffix=...)`: neutralizador opt-in de ruído de protocolo. Personas de catálogo
+  verbosas ("query context manager first") fazem alguns modelos PEDIREM contexto em vez de executar a tarefa,
+  confundindo a medição (o modelo parece fraco; é o instrumento). O sufixo task-forcing anexa ao system prompt
+  da persona SEM tocar o gold humano. Achado ao medir security-auditor à mão (o titular "falhava" só emitindo
+  JSON de pedido-de-contexto). +1 teste.
+
 - **D2** — proveniência de LICENÇA por-skill vira campo de primeira classe: `SkillSpec.license`/`.source`
   (frontmatter) + `.license_cleared` fail-closed (licença ausente/DRAFT/UNKNOWN = não liberada). Ingerida
   uma skill consultiva real (`roles/skills/test-design-boundaries.md`, MIT, prosa própria; método =
