@@ -86,6 +86,17 @@ preocupações defensáveis DIFERENTES que não são over-flag; puni-las geraria
 gate errou exatamente nisso e o dogfood pegou). Integridade preservada (D6): o modelo SINALIZA pra banca
 humana, não autora nem remove o caso. Wired opt-in no runner (`clean_preflight_judges`).
 
+## D14 — União com ruflo: Super Squad é a autoridade de modelo; ruflo é substrato (2026-07-12)
+Composição-alvo numa pilha só: **subagente (persona, D11) + skill (capacidade, D10) → roda no MODELO
+MEDIDO (este motor: roster custo-frontier + gate) → sobre SUBSTRATO (ruflo: memória Graph-RAG cross-sessão,
+custo, Agent Booster Tier-1 $0)**. Verificado por leitura (2026-07-12): o roteador de modelo do ruflo é
+3-tier SÓ-Claude (booster WASM / Haiku / Sonnet-Opus) — NÃO entrega modelo heterogêneo. Logo o roteamento
+de modelo é responsabilidade DESTE motor (o roster medido); o ruflo NÃO decide execução de runtime. Fronteira
+dura: roteamento medido/determinístico no runtime; roteamento neural/aprendido do ruflo fica no dev-loop
+(nunca produção). Integridade intacta: memória do ruflo é recall/contexto, jamais ground-truth (D6);
+promoção segue humana (D5). Seam `RoutingProvider` desenhado em `docs/design/ruflo-union-routing-seam.md`
+— NÃO implementado: plugar só o braço que MOVER o número num experimento N≥5 (mesmo gate do D10).
+
 ## D13 — Política de shootout: uma âncora frontier + teto de gasto (2026-07-11)
 Cada shootout de papel fixa UMA âncora frontier como barra de referência (a que já se mostrou
 custo-dominante entre os frontier na medição privada) e concentra o pool nos candidatos baratos —

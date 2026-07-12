@@ -44,6 +44,9 @@
   recorrente "autor jurou limpo mas tinha bug real → over-flag enviesado".
 - `code_review_eval` — parâmetro opt-in `clean_preflight_judges`: roda o pré-voo do gold (fail-closed)
   antes de gastar no pool inteiro. Default None = compat retroativa. +8 testes herméticos; suíte 136.
+- docs: `design/ruflo-union-routing-seam.md` — seam `RoutingProvider` da união com ruflo (este motor =
+  autoridade de modelo/Eixo B; ruflo = substrato memória/custo/booster-$0). Design, não implementado;
+  plugar só o braço que mover o número num experimento N≥5 (D14).
 
 ## 0.1.0 — 2026-07-08
 
