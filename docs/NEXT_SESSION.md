@@ -53,7 +53,9 @@ O gargalo é sempre o GOLD, não a persona.**
   1. `code-reviewer` — quase firme; é o gate do output do writer. **Firmar primeiro.**
   2. `qa-test-judge` — endurecer o gold (casos-limpos/over-flag); julga os testes.
 - **Onda 2 — os ATIVOS (especialistas que FAZEM; a keystone do "ativo"):**
-  3. **`implementer`/`code-writer`** — escreve a mudança (temos `code_writer.py`, falta papel+gold medido). KEYSTONE.
+  3. **`implementer`/`code-writer`** — escreve a mudança. ✅ PERSONA AUTORADA 07-12 (`roles/vendor/code-writer.md`,
+     consultiva: devolve o PATCH como texto, o gate aplica — encaixa no dogfood sem OpenCode). **Falta o GOLD**
+     (humano: spec+código→patch esperado, régua estrutural) + medir (pool chinês) + firmar. É o 1º a medir na Onda 2.
   4. **`test-author`** — escreve testes p/ a mudança → o loop se auto-verifica.
   5. **`debugger`** — diagnostica falhas no loop (persona existe; falta gold).
 - **Onda 3 — meta/estrutura (guardam a evolução):**
