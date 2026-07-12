@@ -74,7 +74,8 @@ Legenda: ✅ feito · 🔄 em andamento · ⬜ a fazer · 🔒 bloqueado (pré-r
 
 - ✅ **F1.** `run_role` + CLI (porta da frente: usar um subagent medido com UMA chamada).
 - ⬜ **F2.** Repo PRIVADO de medições (versionar/backup os números fora do público, D1).
-- ⬜ **F3.** Declaração pública ANONIMIZADA do benchmark (método + valor, sem slug/número).
+- ✅ **F3.** Declaração pública ANONIMIZADA do benchmark: `docs/BENCHMARK_STATEMENT.md` (tese + o que/como
+  se mede + valor qualitativo + limitações honestas + reproduzir). Zero slug/preço/número medido (auditado).
 - ⬜ **F4.** Nome do produto (em aberto — o atual subvende o moat de medição/custo-frontier).
 
 ## Ordem sugerida (caminho crítico)
