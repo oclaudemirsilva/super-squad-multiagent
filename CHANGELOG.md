@@ -2,6 +2,13 @@
 
 ## Não lançado
 
+- **E2** — `runtimes/opencode.py`: sequência §3 do adapter FIADA (pré-voo teto global → config efêmera →
+  invocação headless → git diff → parse usage → ledger) + telemetria `builder_start`/`builder_end` (OCP,
+  fail-soft). Tudo INJETÁVEL (subprocess/command_builder/parse_usage/check_budget/record_spend/write_config)
+  → exercitado 100% com fakes (+6 testes). 3 portões: `enabled=False` · `assert_builder_preconditions` ·
+  `command_builder=None` (§9 não verificada → recusa montar argv, não adivinha flags). Config referencia a
+  chave por env, nunca embute o valor. NÃO ativa o binário — segue gate humano.
+
 - **E1** — `runtimes/hardening.py`: primitivas PURAS/injetáveis de aplicação dos guarda-corpos A1–A5 da
   Fase 2. `redact_secrets` (A2, idempotente) · `is_bash_allowed`/`assert_bash_allowed` (A3, anti-encadeamento
   de shell) · `WorktreeManager` com `session` try/finally (A1, raio de explosão) · `SpendGuard` thread-safe

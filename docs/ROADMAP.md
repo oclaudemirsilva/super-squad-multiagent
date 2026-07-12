@@ -61,8 +61,13 @@ Legenda: ✅ feito · 🔄 em andamento · ⬜ a fazer · 🔒 bloqueado (pré-r
   mid-loop thread-safe) · `enforce_permission` (despacho fail-closed sobre `PermissionProfile`). A4
   (supply-chain) coberto em parte pelo network-gate + allowlist (sem `pip install` arbitrário); política
   completa de supply-chain e o `hardening_ack` HUMANO seguem pré-req DURO da ATIVAÇÃO (E2).
-- 🔄 **E2.** Adapter OpenCode existe (scaffold); execução REAL não fiada — falta §9 (verificar flags/headless do
-  binário) + `enabled=True`. Só ATIVA pós-hardening + roster de construtor medido.
+- 🔄 **E2.** Adapter OpenCode: sequência §3 (pré-voo teto global → config efêmera → invocação headless →
+  git diff → parse usage → ledger) agora FIADA e exercitada por testes herméticos (subprocess injetado,
+  +6 testes). Telemetria `builder_start`/`builder_end` via `on_event` (fail-soft). 3 portões duros: (1)
+  `enabled=False` default; (2) `assert_builder_preconditions`; (3) `command_builder=None` default → recusa
+  montar argv até §9 (flags reais do binário) ser verificada por humano com um `command_builder` verificado
+  injetado. Config nunca embute a chave (referencia env). NÃO ATIVA: rodar o binário exige humano + roster
+  de construtor medido. `enabled=True` + merge do diff = gate humano.
 - 🔒 **E3.** Roster de construtor RE-medido (persona-construtora medida em modo consultivo primeiro, D8).
 
 ## Track F — Governança, produto, reuso

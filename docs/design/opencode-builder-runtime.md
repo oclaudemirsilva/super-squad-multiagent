@@ -1,11 +1,14 @@
 # Design — OpenCode Builder Runtime adapter
 
-> Status (07-12): SEAM IMPLEMENTADO + gated; execução real NÃO fiada. `super_squad/runtimes/base.py`
-> (contrato + `NullBuilderRuntime` fail-closed + `assert_builder_preconditions`) e `runtimes/opencode.py`
-> (adapter DESABILITADO por default) existem e são testados (12 testes). Unir ≠ soltar: sem worktree +
-> caps + `hardening_ack` humano, não executa; e mesmo habilitado devolve erro honesto até §9 ser verificada.
-> Para ATIVAR (Fase 2, pós-receita): OpenCode instalado + §9 verificado + hardening A1–A5 + roster de
-> construtor RE-medido + `enabled=True, hardening_ack=True`. Merge do diff = gate humano.
+> Status (07-12, atualizado): SEAM IMPLEMENTADO + hardening A1–A5 (`runtimes/hardening.py`) + a SEQUÊNCIA
+> §3 FIADA e testada com fakes injetados (18 testes). `runtimes/base.py` (contrato + `NullBuilderRuntime` +
+> `assert_builder_preconditions`), `runtimes/hardening.py` (worktree/redação/allowlist/spend-guard/enforce),
+> `runtimes/opencode.py` (config efêmera → run headless → git diff → parse usage → ledger + telemetria).
+> Unir ≠ soltar — 3 portões duros: (1) `enabled=False` default; (2) worktree+caps+`hardening_ack`; (3)
+> `command_builder=None` default → recusa montar o argv até §9 (flags reais do binário) ser verificada por
+> humano com um `command_builder` VERIFICADO injetado. Nada roda o binário sozinho. Para ATIVAR (Fase 2,
+> pós-receita): OpenCode instalado + §9 verificado + hardening A1–A5 confirmado + roster de construtor
+> RE-medido + `enabled=True, hardening_ack=True` + `command_builder` verificado. Merge do diff = gate humano.
 
 ## 1. Onde encaixa
 
