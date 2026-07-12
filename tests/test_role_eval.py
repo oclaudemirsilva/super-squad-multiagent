@@ -118,6 +118,26 @@ class TestRoleEval(unittest.TestCase):
             self.assertIn("Pass Rate", md)
             self.assertIn("vendor/model-a", md)
 
+    # --- execution ruler wiring (papel ativo, oráculo executável) ---
+    def test_resolve_execution_case_fail_closed_without_runner(self):
+        case = {"ruler": "execution", "buggy_files": {"m.py": b"x\n"}, "test_cmd": ["pytest"]}
+        r = re.resolve_case_ruler(case)   # sem exec_run_fn → fail-closed
+        out = r("--- a/m.py\n+++ b/m.py\n@@ -1 +1 @@\n-x\n+y\n")
+        self.assertFalse(out["pass"])
+        self.assertEqual(out["label"], "isolation_required")
+
+    def test_resolve_execution_case_with_injected_runner(self):
+        from super_squad.execution_ruler import RunResult
+
+        def run(argv, cwd, t, env):
+            return RunResult(returncode=0)
+        run.isolation_capable = True
+        case = {"ruler": "execution", "buggy_files": {"m.py": b"x\n"}, "test_cmd": ["pytest", "t::a"]}
+        r = re.resolve_case_ruler(case, exec_run_fn=run)
+        out = r("--- a/m.py\n+++ b/m.py\n@@ -1 +1 @@\n-x\n+y\n")   # patch aplica byte-exato
+        self.assertTrue(out["pass"])
+        self.assertEqual(out["label"], "pass")
+
     def test_skill_composed_into_system(self):
         from types import SimpleNamespace
         seen = {}

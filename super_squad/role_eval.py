@@ -38,10 +38,24 @@ from super_squad.rulers import (
 from super_squad.role_shadow import already_checkpointed, append_checkpoint_line
 
 
-def resolve_case_ruler(case: dict) -> "Optional[Callable]":
-    """Devolve a régua determinística do caso. Precedência: `case['ruler']` (spec de resolve_ruler)
-    → convenção code-review (detect_any/forbid_any). Sem régua resolvível → None (o chamador trata
-    como VALIDAÇÃO reprovada — nunca pontua às cegas)."""
+def resolve_case_ruler(case: dict, *, exec_run_fn=None, allow_unsandboxed=False) -> "Optional[Callable]":
+    """Devolve a régua determinística do caso. Precedência: `ruler=="execution"` (régua OBJETIVA de papel
+    ATIVO, construída dos CAMPOS do caso) → `case['ruler']` string (spec de resolve_ruler) → convenção
+    code-review (detect_any/forbid_any). Sem régua resolvível → None (o chamador trata como VALIDAÇÃO
+    reprovada — nunca pontua às cegas).
+
+    `ruler=="execution"` precisa de contexto estruturado (buggy_files/test_cmd/test_files) que não cabe numa
+    string, então é resolvido dos campos, ANTES do dispatch de string. `exec_run_fn` = runner OS-sandboxed
+    injetado na fronteira do harness (default None → fail-closed: a régua recusa executar sem isolamento)."""
+    if case.get("ruler") == "execution":
+        from super_squad.execution_ruler import execution_ruler
+        return execution_ruler(
+            case["buggy_files"], case["test_cmd"],
+            test_files=case.get("test_files"), setup_cmd=case.get("setup_cmd"),
+            patch_target=case.get("patch_target"),
+            timeout_s=case.get("timeout_s", 30.0), expect=case.get("expect", "exit0"),
+            run_fn=exec_run_fn, allow_unsandboxed=allow_unsandboxed,
+        )
     spec = case.get("ruler")
     if spec:
         return resolve_ruler(spec)
@@ -78,6 +92,8 @@ def run_role_eval(
     max_tokens=None,
     system_suffix=None,
     skill_path=None,
+    exec_run_fn=None,
+    allow_unsandboxed=False,
     clean_preflight_judges=None,
     preflight_pool=False,
     preflight_pool_fn: "Optional[Callable]" = None,
@@ -142,7 +158,7 @@ def run_role_eval(
     # VALIDAÇÃO fail-closed: toda caso precisa de régua resolvível (senão a medição é cega).
     rulers = {}
     for case in cases["cases"]:
-        r = resolve_case_ruler(case)
+        r = resolve_case_ruler(case, exec_run_fn=exec_run_fn, allow_unsandboxed=allow_unsandboxed)
         if r is None:
             raise ValueError(
                 f"caso {case['id']!r} sem régua resolvível — declare `ruler` (spec de resolve_ruler) "
