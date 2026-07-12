@@ -40,6 +40,8 @@ def run_roles(
     max_tokens: "Optional[int]" = None,
     timeout: int = 120,
     workers: "Optional[int]" = None,
+    preflight: bool = False,
+    preflight_fn: "Optional[Callable]" = None,
     run_squad_fn: "Optional[Callable]" = None,
     make_job_fn: "Optional[Callable]" = None,
     load_role_fn: "Optional[Callable]" = None,
@@ -70,6 +72,18 @@ def run_roles(
         from .skills import compose_system as compose_fn
 
     norm = [_normalize(t) for t in tasks]
+
+    # B3 — guarda de pré-voo (opt-in, fail-closed): antes de gastar num lote longo sem supervisão,
+    # confere que os slugs dos papéis usados ainda existem no catálogo vivo do OpenRouter. Default
+    # off na lib (preserva os testes herméticos + DIP: pré-voo exige rede); a CLI liga por default.
+    # Injetável (`preflight_fn`) → teste hermético sem rede. Slug ausente ABORTA o lote (PreflightError).
+    if preflight:
+        if preflight_fn is None:
+            from .preflight import assert_roster_live as preflight_fn
+        distinct_roles = sorted({t["role"] for t in norm})
+        preflight_fn(distinct_roles)
+
+
     jobs = []
     plan: list = []  # espelha `norm`: {role, label, persona, keys[], error}
     for i, t in enumerate(norm):
@@ -154,6 +168,8 @@ def main(argv=None) -> int:
     ap.add_argument("--budget", type=float, default=0.50)
     ap.add_argument("--panel", action="store_true", help="cada papel roda todo o roster")
     ap.add_argument("--max-tokens", type=int, default=None)
+    ap.add_argument("--no-preflight", action="store_true",
+                    help="pula a guarda de pré-voo de roster (catálogo vivo) — só p/ debug offline")
     a = ap.parse_args(argv)
 
     if not os.getenv("OPENROUTER_API_KEY"):
@@ -164,7 +180,13 @@ def main(argv=None) -> int:
         for t in tasks:
             if isinstance(t, dict):
                 t.setdefault("panel", True)
-    out = run_roles(tasks, roles_dir=a.roles_dir, budget_usd=a.budget, max_tokens=a.max_tokens)
+    # Porta de humano que gasta $ → pré-voo LIGADO por default (rede disponível); --no-preflight desliga.
+    try:
+        out = run_roles(tasks, roles_dir=a.roles_dir, budget_usd=a.budget, max_tokens=a.max_tokens,
+                        preflight=not a.no_preflight)
+    except Exception as exc:  # noqa: BLE001 — pré-voo reprovou (slug morto) aborta ANTES de gastar
+        print(f"ERRO de pré-voo: {exc}", file=sys.stderr)
+        return 3
     for t in out["tasks"]:
         if t["error"]:
             print(f"=== {t['label']} :: ERRO: {t['error']}\n")

@@ -2,6 +2,13 @@
 
 ## Não lançado
 
+- **B3** — guarda de pré-voo de ROSTER (`preflight.assert_roster_live`, catálogo vivo do OpenRouter)
+  wired como opt-in fail-closed nas duas portas de gasto: `run_roles(preflight=...)` (checa os papéis
+  distintos) e `role_eval.run_role_eval(preflight_pool=...)` (adapta o `pool` a um roster sintético).
+  Slug ausente ABORTA o lote ANTES de gastar. Default OFF na lib (preserva os testes herméticos + DIP —
+  o pré-voo exige rede); a CLI de `run_roles` liga por default (`--no-preflight` p/ debug offline).
+  `preflight_fn`/`preflight_pool_fn` injetáveis. +6 testes herméticos; verificado live (slug morto aborta).
+
 - `rulers` — biblioteca de réguas DETERMINÍSTICAS reutilizáveis para o fiscal (o repo não
   trazia nenhuma pronta): `json_valid` (estrito a cerca markdown), `numeric_close` (extrai a
   resposta numérica, pt-BR/en), `length_window`, `contains_all` (sem acento), `exact_match`,

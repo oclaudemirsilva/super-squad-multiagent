@@ -118,6 +118,47 @@ class TestRoleEval(unittest.TestCase):
             self.assertIn("Pass Rate", md)
             self.assertIn("vendor/model-a", md)
 
+    # --- B3: pré-voo do POOL (opt-in, fail-closed) ---
+    def test_preflight_pool_off_by_default(self):
+        seen = {"called": False}
+
+        def spy_pf(roles, roster_fn=None):
+            seen["called"] = True
+        run = make_fake_run_squad(lambda cid: "approved")
+        with TemporaryDirectory() as d:
+            re.run_role_eval(self._write(d, GOLD_GENERIC), None, POOL,
+                             out_path=str(Path(d) / "o.json"), api_key="k",
+                             run_squad_fn=run, preflight_pool_fn=spy_pf, **COMMON)
+        self.assertFalse(seen["called"])
+
+    def test_preflight_pool_on_checks_pool_slugs(self):
+        seen = {}
+
+        def spy_pf(roles, roster_fn=None):
+            seen["pool"] = list(roster_fn("__pool__"))  # o guard adapta o pool a um roster sintético
+        run = make_fake_run_squad(lambda cid: "approved")
+        with TemporaryDirectory() as d:
+            re.run_role_eval(self._write(d, GOLD_GENERIC), None, POOL,
+                             out_path=str(Path(d) / "o.json"), api_key="k", run_squad_fn=run,
+                             preflight_pool=True, preflight_pool_fn=spy_pf, **COMMON)
+        self.assertEqual(seen["pool"], POOL)
+
+    def test_preflight_pool_failure_aborts_before_spend(self):
+        ran = {"spent": False}
+
+        def failing_pf(roles, roster_fn=None):
+            raise RuntimeError("slug do pool morto")
+
+        def spy_run(jobs, workers=6, budget_usd=0.0):
+            ran["spent"] = True
+            return SimpleNamespace(results=[], total_cost_usd=0.0, budget_hit=False)
+        with TemporaryDirectory() as d:
+            with self.assertRaises(RuntimeError):
+                re.run_role_eval(self._write(d, GOLD_GENERIC), None, POOL,
+                                 out_path=str(Path(d) / "o.json"), api_key="k", run_squad_fn=spy_run,
+                                 preflight_pool=True, preflight_pool_fn=failing_pf, **COMMON)
+        self.assertFalse(ran["spent"])
+
     @staticmethod
     def _write(d, gold):
         p = Path(d) / "gold.json"

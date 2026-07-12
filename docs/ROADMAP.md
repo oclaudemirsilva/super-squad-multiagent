@@ -22,8 +22,12 @@ Legenda: ✅ feito · 🔄 em andamento · ⬜ a fazer · 🔒 bloqueado (pré-r
 - ✅ **B1.** `role_eval.py` — runner ROLE-AGNÓSTICO: régua vem do gold via `resolve_ruler` (fallback p/ a
   convenção code-review, roda golds antigos). Fail-closed sem régua. Aditivo (não toca `code_review_eval`). +6 testes.
 - ✅ **B2.** Checkpoint idempotente + teto de gasto (herdados no runner genérico).
-- 🔄 **B3.** Pré-voo de gold (`gold_preflight`) já wired no `role_eval` (`clean_preflight_judges`). Falta o
-  pré-voo de roster (`preflight`, catálogo vivo) como guarda default — precisa de rede, fica opcional.
+- ✅ **B3.** Pré-voo de gold (`gold_preflight`) wired no `role_eval` (`clean_preflight_judges`). Pré-voo de
+  ROSTER (`preflight.assert_roster_live`, catálogo vivo) agora wired como guarda opt-in fail-closed em
+  `run_roles` (`preflight=`, distinct roles) e `role_eval` (`preflight_pool=`, adapta o pool). Default OFF na
+  lib (preserva testes herméticos + DIP: pré-voo exige rede); a CLI de `run_roles` liga por default
+  (`--no-preflight` desliga). Injetável → teste hermético. +6 testes; verificado live (slug morto ABORTA
+  antes de gastar).
 
 ## Track C — União com ruflo (o SUBSTRATO, D14)
 

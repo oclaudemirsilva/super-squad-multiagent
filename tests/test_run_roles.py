@@ -161,6 +161,44 @@ class TestRunRoles(unittest.TestCase):
         self.assertIsNotNone(out["tasks"][0]["error"])
         self.assertEqual(out["spent_usd"], 0.0)
 
+    # --- B3: guarda de pré-voo de roster (opt-in, fail-closed) ---
+    def test_preflight_off_by_default_never_called(self):
+        seen = {"called": False}
+
+        def spy_pf(roles):
+            seen["called"] = True
+        rr.run_roles([{"role": "code-reviewer", "input": "x"}], preflight_fn=spy_pf, **COMMON)
+        self.assertFalse(seen["called"])  # default off → nunca toca rede
+
+    def test_preflight_on_checks_distinct_roles_then_spends(self):
+        seen = {}
+
+        def spy_pf(roles):
+            seen["roles"] = list(roles)
+        out = rr.run_roles([{"role": "code-reviewer", "input": "a"},
+                            {"role": "security-auditor", "input": "b"},
+                            {"role": "code-reviewer", "input": "c"}],
+                           preflight=True, preflight_fn=spy_pf, **COMMON)
+        self.assertEqual(seen["roles"], ["code-reviewer", "security-auditor"])  # distinto + ordenado
+        self.assertEqual(len(out["tasks"]), 3)  # segue gastando após o pré-voo passar
+
+    def test_preflight_failure_aborts_before_spend(self):
+        spent = {"ran": False}
+
+        def failing_pf(roles):
+            raise RuntimeError("slug morto no catálogo")
+
+        def spy_run_squad(jobs, workers=1, budget_usd=0.0):
+            spent["ran"] = True
+            return make_fake_run_squad()(jobs, workers, budget_usd)
+
+        common = dict(COMMON)
+        common["run_squad_fn"] = spy_run_squad
+        with self.assertRaises(RuntimeError):
+            rr.run_roles([{"role": "code-reviewer", "input": "x"}],
+                         preflight=True, preflight_fn=failing_pf, **common)
+        self.assertFalse(spent["ran"])  # abortou ANTES de gastar
+
 
 if __name__ == "__main__":
     unittest.main()

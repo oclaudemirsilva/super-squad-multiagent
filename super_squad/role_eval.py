@@ -77,6 +77,8 @@ def run_role_eval(
     timeout=120,
     max_tokens=None,
     clean_preflight_judges=None,
+    preflight_pool=False,
+    preflight_pool_fn: "Optional[Callable]" = None,
     load_role_fn: "Optional[Callable]" = None,
     run_squad_fn: "Optional[Callable]" = None,
     make_job_fn: "Optional[Callable]" = None,
@@ -101,6 +103,16 @@ def run_role_eval(
 
     if not pool:
         raise ValueError("Pool cannot be empty")
+
+    # B3 — pré-voo do POOL (opt-in, fail-closed): confere que todo slug da medição existe no catálogo
+    # vivo ANTES de gastar N reps × M casos sem supervisão (um slug morto queimaria o lote no meio).
+    # Default off (o pré-voo exige rede; os testes herméticos não pagam esse pedágio); os drivers de
+    # medição real ligam. Injetável p/ teste. Adapta o guard de ROSTER (por-papel) ao POOL passado aqui.
+    if preflight_pool:
+        pf = preflight_pool_fn
+        if pf is None:
+            from super_squad.preflight import assert_roster_live as pf
+        pf(["__pool__"], roster_fn=lambda _role: tuple(pool))
     # VALIDAÇÃO fail-closed: toda caso precisa de régua resolvível (senão a medição é cega).
     rulers = {}
     for case in cases["cases"]:
