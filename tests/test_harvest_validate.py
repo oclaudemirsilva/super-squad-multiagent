@@ -5,7 +5,7 @@ contaminaria o gold do code-writer.
 from __future__ import annotations
 
 from super_squad.execution_ruler import RunResult
-from super_squad.harvest_validate import harvest_and_validate, validate_red_green
+from super_squad.harvest_validate import _drop_selector, harvest_and_validate, validate_red_green
 
 _BUGGY = {"m.py": b"buggy"}
 _FIXED = {"m.py": b"fixed"}
@@ -99,6 +99,36 @@ def test_harvest_and_validate_keeps_only_valid():
     assert validated[0]["expect_baseline_fail"] is True
     assert {r["case_id"]: r["reason"] for r in report} == {
         "repo@aaa": "ok", "repo@bbb": "baseline_nao_falhou"}
+
+
+def test_drop_selector_strips_function_but_keeps_file():
+    assert _drop_selector(["python", "-m", "pytest", "-q", "tests/t.py::test_x"]) == \
+        ["python", "-m", "pytest", "-q", "tests/t.py"]
+    # sem `::` fica igual (idempotente)
+    assert _drop_selector(["python", "-m", "pytest", "-q", "tests/t.py"]) == \
+        ["python", "-m", "pytest", "-q", "tests/t.py"]
+
+
+def test_file_only_fallback_rescues_when_selector_does_not_collect():
+    case = _fake_case("repo@ccc")
+    case["test_cmd"] = ["python", "-m", "pytest", "-q", "tests/t.py::test_new"]
+    # narrow: red falha, green NÃO coleta (rc4) → inválido; file-only: red falha, green passa → resgata.
+    results = iter([RunResult(returncode=1), RunResult(returncode=4),   # narrow (red, green)
+                    RunResult(returncode=1), RunResult(returncode=0)])   # file-only (red, green)
+
+    def run_fn(argv, cwd, t, env):
+        return next(results)
+
+    validated, report = harvest_and_validate(
+        "x/repo",
+        harvest_fn=lambda rg, **kw: ([case], []),
+        run_git=lambda args: None,
+        fetch_tree=lambda ref: dict(_FIXED),
+        run_fn=run_fn,
+    )
+    assert len(validated) == 1 and report[0]["reason"] == "ok"
+    # o gold guarda o cmd que REALMENTE validou (arquivo inteiro, sem o `::test_new`)
+    assert validated[0]["test_cmd"] == ["python", "-m", "pytest", "-q", "tests/t.py"]
 
 
 def test_harvest_and_validate_skips_when_no_tree():

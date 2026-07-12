@@ -126,3 +126,20 @@ melhor RESULTADO —, mantendo uma lista dos ~12 melhores (curada+viva, PRIVADA 
 ligado, `max_tokens≥2000` p/ reasoning models senão vêm VAZIOS). Motivo: o objetivo imediato é o melhor
 cérebro por papel; custo é desempate, não o filtro primário. D13 (âncora frontier + teto) fica dormente
 enquanto a âncora externa está suspensa; o teto de gasto por medição permanece.
+
+
+## D17 — Sandbox de execução = WSL2 (cerca honesta) + gold ATIVO validado por EXECUÇÃO (2026-07-12, 3ª sessão)
+Os papéis ATIVOS (code-writer/debugger) precisam de gold com verdade EXECUTÁVEL, não "patch esperado"
+autorado à mão (isso seria autofagia). Duas decisões:
+(1) **Backend do `run_fn`** (a fronteira que roda patch não-confiável) = **WSL2** (user escolheu 07-12
+entre WSL2/Docker). Isola rede (`unshare --net`), FS do host (tmpfs sobre /mnt no mount ns), PID e é
+efêmero. HONESTO: kernel compartilhado com a VM WSL2 → cerca forte de contenção (rede/FS/persistência/env),
+NÃO limite anti-inquilino-hostil; a costura `run_fn` permite trocar por nsjail/gVisor/microVM sem tocar a
+régua. 3 gotchas do wsl.exe travados por teste (`$(...)` e `$?` voltam VAZIOS → nada de `rc=$?`, senão TODA
+falha viraria pass silencioso; posicionais após `bash -c` descartados; drives 9p em /mnt/c…).
+(2) **Gold ATIVO = red→green validado por execução**: um fix-commit humano só vira gold se, materializando a
+ÁRVORE COMPLETA (git archive), o teste FALHA no pai (RED) e PASSA no fix (GREEN). Timeout/spawn_error NÃO
+contam como RED honesto. A LINHA-DURA continua: o modelo medido nunca autora o próprio juiz (os testes do
+sandbox são meus, não do writer). VAZAMENTO (trava nº1): a fonte tem que ser FRESCA/PRIVADA — o gold de
+PROMOÇÃO fica held-out; dataset público famoso = calibração/smoke, nunca promoção. QUAL fonte é decisão
+humana (D6). Medido 07-12: 15/16 golds do code-writer do repo super-squad (fresco/privado), zero autoria manual.

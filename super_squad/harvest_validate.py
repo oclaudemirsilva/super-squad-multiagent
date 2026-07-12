@@ -154,13 +154,29 @@ def harvest_and_validate(
             continue
         # RED = árvore-do-pai + o TESTE no estado do fix (o teste que pega o bug); GREEN = árvore-do-fix.
         red_files = {**parent_tree, **case["test_files"]}
-        v = validate_red_green(red_files, fix_tree, {}, case["test_cmd"],
-                               timeout_s=timeout_s, run_fn=run_fn)
+        cmd = case["test_cmd"]
+        v = validate_red_green(red_files, fix_tree, {}, cmd, timeout_s=timeout_s, run_fn=run_fn)
+        # FALLBACK arquivo-inteiro: o seletor `arquivo::função` dá rc4 (não coleta) quando o módulo é NOVO
+        # (import falha na coleta do pai). Rodar o arquivo inteiro é mais robusto (medido: resgata os casos).
+        file_cmd = _drop_selector(cmd)
+        if not v["valid"] and file_cmd != cmd:
+            v2 = validate_red_green(red_files, fix_tree, {}, file_cmd, timeout_s=timeout_s, run_fn=run_fn)
+            if v2["valid"]:
+                v, cmd = v2, file_cmd
         report.append({"case_id": case["case_id"], "reason": v["reason"],
                        "red": v["red_label"], "green": v["green_label"]})
         if v["valid"]:
             case = dict(case)
+            case["test_cmd"] = cmd                     # o cmd que REALMENTE valida vira o do gold
             case["expect_baseline_fail"] = True
             case["validation"] = {k: v[k] for k in ("red_rc", "green_rc", "red_label", "green_label")}
             validated.append(case)
     return validated, report
+
+
+def _drop_selector(test_cmd: "list[str]") -> "list[str]":
+    """Tira o `::função` do último arg (arquivo::teste → arquivo) p/ rodar o arquivo de teste inteiro."""
+    if not test_cmd:
+        return test_cmd
+    last = test_cmd[-1]
+    return test_cmd[:-1] + [last.split("::", 1)[0]] if "::" in last else test_cmd

@@ -1,8 +1,18 @@
 # Ponto de retomada — próxima sessão
 
-> Âncora de contexto para continuar sem perder o fio. Estado em **2026-07-12** (2ª sessão autônoma, foco
-> ESTRUTURA). Branch `feat/subagent-army-pilot`, tudo pushado, suíte **216 verde**, ZERO dívida técnica.
+> Âncora de contexto para continuar sem perder o fio. Estado em **2026-07-12** (3ª sessão autônoma, foco
+> DESTRAVAR O CODE-WRITER). Branch `feat/subagent-army-pilot`, suíte **~281 verde**, ZERO dívida técnica.
 > Leia junto: `docs/ROADMAP.md` (status por track), `docs/INTEGRATION.md` (o que está plugado), `DECISIONS.md`.
+>
+> **★ 3ª sessão (07-12) FECHOU os elos (a)+(b) do substrato de medição objetiva** (o chão que destrava o
+> code-writer): **(a)** `super_squad/wsl_sandbox.py` — `run_fn` OS-sandboxed REAL sobre WSL2 (rede off, FS
+> do host escondido via tmpfs, PID iso, efêmero) → o `execution_ruler` saiu do *fail-closed* e EXECUTA
+> (17 herméticos + 4 smoke real; commit `b517e53`). **(b)** `super_squad/harvest_validate.py` — valida
+> red→green os fix-commits colhidos → **15/16 golds do code-writer PROVADOS mecanicamente** (zero autoria
+> manual; commit `9e0a9ae` + fallback file-only). Golds persistidos em `_candidate_evals/golds_code_writer/`.
+> Dogfood cumprido: o code-writer rascunhou o `run_fn` ($0.0067); o gate pegou 2 bugs reais dos drafts.
+> **PRÓXIMO = (c):** medir o code-writer nesses 15 golds (pool chinês, `system_suffix`, N≥5) e trazer o
+> número — a **promoção continua HUMANA (D5)**. Depois, (d) esboçar o orquestrador de loop.
 
 ## Onde estamos (uma tela)
 
@@ -63,9 +73,20 @@ Para os ativos (writer/test/debugger) a régua é OBJETIVA — não se autora um
 - ✅ **CONSTRUÍDO 07-12 (zero-gasto):** `super_squad/execution_ruler.py` (régua de EXECUÇÃO fail-closed +
   oracle guard + applier stdlib, +21 testes) e `super_squad/git_harvester.py` (colhe fix-commits → gold cases,
   +10 testes, verificado no repo REAL: 15 casos de 120 commits). Fiado no `role_eval` (`ruler=="execution"`).
-  **FALTA (próxima sessão):** (a) injetar um `run_fn` OS-sandboxed real (unshare/nsjail/container) na fronteira
-  do harness — hoje é fail-closed sem ele; (b) `harvest` de commits FRESCOS/privados → validar red→green
-  (expect_baseline_fail) → gold do `code-writer`/`debugger`; (c) medir o `code-writer` (pool chinês) e firmar.
+- ✅ **(a) FEITO 07-12(3ª):** `super_squad/wsl_sandbox.py` — o `run_fn` OS-sandboxed REAL (WSL2: `unshare
+  --net --mount --pid`, tmpfs sobre /mnt, workspace ext4 efêmero). O `execution_ruler` EXECUTA (não mais
+  fail-closed). Isolamento PROVADO (17 herméticos + 4 smoke real: rede off, /mnt escondido, exit fiel).
+  Honesto: kernel compartilhado com a VM WSL2 → cerca forte, não anti-inquilino-hostil (troca por nsjail/
+  microVM sem tocar a régua). 3 gotchas do wsl.exe documentados no módulo (`$(...)`/`$?` vazios, posicionais
+  descartados, drives 9p). Commit `b517e53`.
+- ✅ **(b) FEITO 07-12(3ª):** `super_squad/harvest_validate.py` — valida red→green (RED=árvore-do-pai+teste
+  falha; GREEN=árvore-do-fix passa; materializa a árvore COMPLETA via `git archive`, semântica BugsInPy).
+  **REAL: 15/16 golds do code-writer PROVADOS** (1 rejeitado corretamente: baseline não falhou). Fallback
+  file-only resgata quando o seletor `::função` não coleta (rc4). Golds em `_candidate_evals/golds_code_writer/
+  golds_red_green.json` (base64, privado). 11 herméticos. Commit `9e0a9ae` (+ fallback).
+  **FALTA (próxima sessão):** (c) medir o `code-writer` nesses 15 golds (pool chinês, `system_suffix`, N≥5)
+  → trazer o número → **firmar é HUMANO (D5)**. O `run_role` já roda o papel; falta rodar o `execution_ruler`
+  com esses golds contra o output do writer (loop de avaliação por execução).
 - **LINHA DURA:** o modelo MEDIDO nunca autora o próprio juiz. Harvestar trabalho de OUTROS humanos = ok.
 - **CUIDADO DE VAZAMENTO:** modelos podem ter MEMORIZADO fixes públicos famosos → preferir commits recentes/privados,
   de-dup por fonte (group_key=source), senão o número mente pra cima. Vale a lição do split-por-source já medida.
