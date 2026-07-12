@@ -60,10 +60,12 @@ O gargalo é sempre o GOLD, não a persona.**
 ### ★ COMO OBTER GOLDS SEM AUTORIA MANUAL (decidido 07-12) — DESTRAVA o code-writer
 Distinção: papéis de JUÍZO (over-flag) precisam de verdade humana; papéis ATIVOS têm verdade EXECUTÁVEL.
 Para os ativos (writer/test/debugger) a régua é OBJETIVA — não se autora um "patch esperado":
-- **CONSTRUIR (1º na próxima sessão, estrutura, zero-gasto):**
-  1. `execution_ruler` em `rulers.py` — "aplica o patch → roda a suíte → passou?" (régua de EXECUÇÃO, não de texto).
-  2. `git_harvester` — gera casos a partir do HISTÓRICO de fixes: commit-de-fix → pai = código "antes", msg/issue =
-     spec, o TESTE que o fix faz passar = oráculo. Verdade HUMANA (o dev rotulou ao consertar), NÃO autofagia.
+- ✅ **CONSTRUÍDO 07-12 (zero-gasto):** `super_squad/execution_ruler.py` (régua de EXECUÇÃO fail-closed +
+  oracle guard + applier stdlib, +21 testes) e `super_squad/git_harvester.py` (colhe fix-commits → gold cases,
+  +10 testes, verificado no repo REAL: 15 casos de 120 commits). Fiado no `role_eval` (`ruler=="execution"`).
+  **FALTA (próxima sessão):** (a) injetar um `run_fn` OS-sandboxed real (unshare/nsjail/container) na fronteira
+  do harness — hoje é fail-closed sem ele; (b) `harvest` de commits FRESCOS/privados → validar red→green
+  (expect_baseline_fail) → gold do `code-writer`/`debugger`; (c) medir o `code-writer` (pool chinês) e firmar.
 - **LINHA DURA:** o modelo MEDIDO nunca autora o próprio juiz. Harvestar trabalho de OUTROS humanos = ok.
 - **CUIDADO DE VAZAMENTO:** modelos podem ter MEMORIZADO fixes públicos famosos → preferir commits recentes/privados,
   de-dup por fonte (group_key=source), senão o número mente pra cima. Vale a lição do split-por-source já medida.

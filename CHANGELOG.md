@@ -2,6 +2,17 @@
 
 ## Não lançado
 
+- **`execution_ruler` + `git_harvester`** — golds OBJETIVOS sem autoria manual (verdade EXECUTÁVEL) para os
+  papéis ATIVOS. `execution_ruler.py`: aplica o patch do modelo → roda o teste confiável do gold → pass=passou;
+  trust-split (patch é a única entrada não-confiável; argv-only/shell=False); `require_isolation=True` fail-closed
+  (recusa sem run_fn OS-sandboxed injetado — um tempdir+subprocess é cerca de CORRETUDE, não de segurança);
+  oracle hard-guard (re-materializa os testes DEPOIS do apply; remove conftest/*.pth plantados); applier stdlib
+  whole-or-nothing por busca de conteúdo; NUNCA levanta. `git_harvester.py`: colhe casos do histórico (fix-commit →
+  pai=antes, msg=spec, teste=oráculo), `run_git` injetável, NUNCA crasha (anomalia→skip), marcadores anti-autofagia
+  (`origin=human_commit`); reference do fix é só metadado (o modelo nunca o vê). Verificado no repo real (15 casos
+  de 120 commits). `role_eval.resolve_case_ruler` ganha 1 branch aditivo (`ruler=="execution"`, `exec_run_fn`
+  injetável, fail-closed). Projetado+red-teamed por workflow multi-agente; +33 testes (suíte 216→249).
+
 - **Persona keystone `code-writer`** (`roles/vendor/code-writer.md`) — o implementer ESPECIALISTA, subagente
   ATIVO do loop de automelhoria. Consultivo por design (devolve o PATCH como texto; `NEED:` se ambíguo;
   `PATCH_SUMMARY:` no fim), `declared_tools=Read` → `single_shot=True` (roda no motor hoje, mensurável por

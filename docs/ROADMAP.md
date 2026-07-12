@@ -47,6 +47,12 @@ Legenda: ✅ feito · 🔄 em andamento · ⬜ a fazer · 🔒 bloqueado (pré-r
   catálogo verbosas mandam "query context manager first" e alguns modelos OBEDECEM (emitem pedido de
   contexto em vez de auditar) → confundem a medição. Um sufixo task-forcing corrige SEM tocar o gold humano.
   Descoberto medindo A2 (o titular atual "falhava" só por emitir JSON de pedido-de-contexto). +1 teste.
+- ✅ **B5.** GOLDS OBJETIVOS sem autoria manual (destrava os papéis ATIVOS): `execution_ruler.py` (aplica o
+  patch → roda o teste confiável → pass; fail-closed de isolamento, oracle hard-guard, NUNCA levanta) +
+  `git_harvester.py` (colhe fix-commits do histórico → gold cases; verdade HUMANA, anti-autofagia; run_git
+  injetável, nunca crasha). Fiado no `role_eval` (`ruler=="execution"`, `exec_run_fn` injetável). Projetado+
+  red-teamed por workflow; +33 testes; verificado no repo real (15 casos/120 commits). FALTA: run_fn
+  OS-sandboxed real + harvest de commits frescos + validar red→green + medir o code-writer.
 
 ## Track C — União com ruflo (o SUBSTRATO, D14)
 
