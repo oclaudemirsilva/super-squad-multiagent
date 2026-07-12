@@ -72,6 +72,32 @@ class TestRunRoles(unittest.TestCase):
         self.assertIsNone(out["tasks"][1]["error"])
         self.assertTrue(out["tasks"][1]["results"][0]["ok"])
 
+    def test_instruction_prefixes_input(self):
+        seen = {}
+
+        def spy_make_job(key, prompt, slug, pin, pout, **kw):
+            seen[key.split("::")[1]] = prompt
+            return {"key": key, "slug": slug, "input": prompt, "system": kw.get("system")}
+
+        common = dict(COMMON)
+        common["make_job_fn"] = spy_make_job
+        rr.run_roles([{"role": "code-reviewer", "input": "the code",
+                       "instruction": "Do X. End with VERDICT:"}], **common)
+        self.assertTrue(seen["code-reviewer"].startswith("Do X. End with VERDICT:"))
+        self.assertIn("the code", seen["code-reviewer"])
+
+    def test_no_instruction_leaves_input_raw(self):
+        seen = {}
+
+        def spy_make_job(key, prompt, slug, pin, pout, **kw):
+            seen[key.split("::")[1]] = prompt
+            return {"key": key, "slug": slug, "input": prompt, "system": kw.get("system")}
+
+        common = dict(COMMON)
+        common["make_job_fn"] = spy_make_job
+        rr.run_roles([{"role": "code-reviewer", "input": "raw only"}], **common)
+        self.assertEqual(seen["code-reviewer"], "raw only")
+
     def test_label_override(self):
         out = rr.run_roles([{"role": "code-reviewer", "input": "x", "label": "PR-42"}], **COMMON)
         self.assertEqual(out["tasks"][0]["label"], "PR-42")

@@ -44,8 +44,10 @@ def run_roles(
     load_role_fn: "Optional[Callable]" = None,
     roster_fn: "Optional[Callable]" = None,
 ) -> dict:
-    """Roda cada tarefa `{role, input, panel?, label?}` em PARALELO (titular do papel por default;
-    `panel=True` roda todo o roster daquele papel). Um só `run_squad` cobre todos os jobs.
+    """Roda cada tarefa `{role, input, panel?, label?, instruction?}` em PARALELO (titular do papel
+    por default; `panel=True` roda todo o roster). Um só `run_squad` cobre todos os jobs. `instruction`
+    (opt-in) prefixa uma diretiva-tarefa clara ao input — recomendado com personas de catálogo verbosas
+    que, sem ela, emitem protocolo em vez do veredito (achado do smoke 07-12).
 
     Devolve `{tasks:[{role, label, persona, results:[{model,text,ok,cost_usd,error}], error}],
     spent_usd}`. Tarefa com roster vazio/persona ausente → `error` preenchido, `results` vazio,
@@ -76,10 +78,14 @@ def run_roles(
                 )
             if not t.get("panel"):
                 roster = roster[:1]
+            # instruction opt-in: prefixa uma diretiva-tarefa clara ao input. Personas VERBOSAS de
+            # catálogo ("query context manager first") emitem ruído de protocolo sem isso — o smoke
+            # 07-12 pegou; uma instrução explícita (como o gold de medição faz) suprime o desvio.
+            body = f"{t['instruction'].strip()}\n\n{t['input']}" if t.get("instruction") else t["input"]
             for slug, pin, pout in roster:
                 key = f"{i}::{role}::{slug}"
                 entry["keys"].append(key)
-                jobs.append(make_job_fn(key, t["input"], slug, pin, pout,
+                jobs.append(make_job_fn(key, body, slug, pin, pout,
                                         system=spec.system_prompt, temperature=temperature,
                                         timeout=timeout, api_key=api_key, max_tokens=max_tokens))
         except Exception as exc:  # noqa: BLE001 — papel quebrado vira erro DA TAREFA, não do lote
