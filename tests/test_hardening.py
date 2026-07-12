@@ -17,11 +17,11 @@ class TestRedactSecrets(unittest.TestCase):
         openai = "sk-" + "B" * 30
         text = (f"key={openrouter} and {openai}\n"
                 f"Authorization: Bearer abcdef0123456789ABCDEF\n"
-                f"aws AKIAABCDEFGHIJKLMNOP\n"
+                f"aws AKIAIOSFODNN7EXAMPLE\n"
                 f"  API_KEY = supersecretvalue\n")
         out = H.redact_secrets(text)
         for leaked in (openrouter, openai, "abcdef0123456789ABCDEF",
-                       "AKIAABCDEFGHIJKLMNOP", "supersecretvalue"):
+                       "AKIAIOSFODNN7EXAMPLE", "supersecretvalue"):
             self.assertNotIn(leaked, out)
         self.assertIn("[REDACTED]", out)
 
