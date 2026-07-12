@@ -87,6 +87,21 @@ export AI_SQUAD_ROSTER_CODE_REVIEWER="<your measured slug>:<pin>:<pout>"   # pri
 python -m super_squad.run_role code-reviewer "Review this: <code>"
 ```
 
+**Several subagents at once** — `run_roles` runs N roles in a single concurrent fan-out (all jobs share
+the worker pool and the spend cap; a role with an empty roster fails that task, not the batch):
+
+```python
+from super_squad.run_roles import run_roles
+out = run_roles([
+    {"role": "code-reviewer", "input": diff},
+    {"role": "security-auditor", "input": diff},
+])
+for t in out["tasks"]:
+    print(t["role"], "→", (t["results"][0]["text"] if not t["error"] else t["error"]))
+```
+
+The target roster of roles (the 12 most important, in dependency order) lives in [`roles/MANIFEST.md`](roles/MANIFEST.md).
+
 The same subagent also runs from another project's own OpenRouter call (`system=spec.system_prompt`,
 `model=<slug>`), from an AI gateway, or back inside Claude Code / Codex / OpenCode (the personas came from
 those catalogs). `run_role` is **consultative** (read & judge, no tool execution) — for a persona that

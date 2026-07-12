@@ -47,6 +47,13 @@
 - docs: `design/ruflo-union-routing-seam.md` — seam `RoutingProvider` da união com ruflo (este motor =
   autoridade de modelo/Eixo B; ruflo = substrato memória/custo/booster-$0). Design, não implementado;
   plugar só o braço que mover o número num experimento N≥5 (D14).
+- `run_roles` — **porta PARALELA**: roda N papéis (subagents) num único fan-out concorrente do `run_squad`
+  (jobs de todos os papéis dividem workers + teto de gasto). Fail-soft por tarefa (papel sem roster vira
+  erro DAQUELA tarefa, não do lote). Função + CLI (`python -m super_squad.run_roles tasks.json`). +7 testes
+  herméticos; suíte 143.
+- `roles/MANIFEST.md` — os 12 subagentes mais importantes em ordem de dependência (Fase 1 consultivos +
+  Fase 2 construtor), com o rito de "entrar em ação sem gastar pra testar" (persona MIT + roster semeado
+  com prior chinês via env; medir gradual, D9/D10). `docs/ROADMAP.md` — backlog por track.
 
 ## 0.1.0 — 2026-07-08
 
