@@ -62,6 +62,11 @@
   `NullBoosterAdapter` = fallback enquanto ruflo não plugado). +7 testes.
 - 8 personas consultivas autoradas (draft do workhorse chinês, gate humano) p/ os papéis do manifesto;
   proveniência distinta do catálogo (`roles/vendor/README.md`). Suíte total **163**, 0 rede.
+- `run_roles` — `skill` opt-in por tarefa: compõe o playbook da skill ao system prompt (D10), com o gate
+  (skill que executa código = Fase 2 → tarefa erra fail-soft). Une a 3ª força (skills) ao fan-out. +3 testes.
+- `runtimes/` — seam `BuilderRuntime` (Fase 2): `base.py` (contrato + `NullBuilderRuntime` fail-closed +
+  `assert_builder_preconditions`) + `opencode.py` (adapter DESABILITADO por default; blocked sem worktree +
+  caps + `hardening_ack`; execução real não fiada até §9). Une o OpenCode à pilha SEM soltá-lo. +12 testes. Suíte **180**.
 
 ## 0.1.0 — 2026-07-08
 

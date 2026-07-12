@@ -1,8 +1,11 @@
 # Design — OpenCode Builder Runtime adapter
 
-> Status: DESIGN (fase 2 do exército de subagents). Não implementado.
-> Pré-requisito: piloto single-shot validar a esteira convert→route→measure.
-> Este doc é o contrato; a implementação re-mede modelos e verifica a API real do OpenCode.
+> Status (07-12): SEAM IMPLEMENTADO + gated; execução real NÃO fiada. `super_squad/runtimes/base.py`
+> (contrato + `NullBuilderRuntime` fail-closed + `assert_builder_preconditions`) e `runtimes/opencode.py`
+> (adapter DESABILITADO por default) existem e são testados (12 testes). Unir ≠ soltar: sem worktree +
+> caps + `hardening_ack` humano, não executa; e mesmo habilitado devolve erro honesto até §9 ser verificada.
+> Para ATIVAR (Fase 2, pós-receita): OpenCode instalado + §9 verificado + hardening A1–A5 + roster de
+> construtor RE-medido + `enabled=True, hardening_ack=True`. Merge do diff = gate humano.
 
 ## 1. Onde encaixa
 

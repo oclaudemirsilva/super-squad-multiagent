@@ -47,9 +47,12 @@ Legenda: ✅ feito · 🔄 em andamento · ⬜ a fazer · 🔒 bloqueado (pré-r
 
 ## Track E — Construtores Fase 2 (agentic — o mais ARRISCADO, gated)
 
-- ✅ **E0.** Seam `BuilderRuntime` + threat-model desenhados (não implementados).
+- ✅ **E0.** Seam `BuilderRuntime` IMPLEMENTADO + gated: `super_squad/runtimes/base.py` (contrato +
+  `NullBuilderRuntime` fail-closed + `assert_builder_preconditions`) + `runtimes/opencode.py` (adapter
+  DESABILITADO por default). +12 testes. Unido à pilha, NÃO solto (sem worktree/caps/hardening_ack não executa).
 - 🔒 **E1.** Hardening A1–A5 (raio de explosão · segredo · injection · supply-chain · teto mid-loop) — pré-req DURO.
-- 🔒 **E2.** Adapter de runtime de construtor (OpenCode candidato) atrás de seam DIP + worktree + teto na fronteira.
+- 🔄 **E2.** Adapter OpenCode existe (scaffold); execução REAL não fiada — falta §9 (verificar flags/headless do
+  binário) + `enabled=True`. Só ATIVA pós-hardening + roster de construtor medido.
 - 🔒 **E3.** Roster de construtor RE-medido (persona-construtora medida em modo consultivo primeiro, D8).
 
 ## Track F — Governança, produto, reuso
