@@ -10,7 +10,16 @@ Legenda: ✅ feito · 🔄 em andamento · ⬜ a fazer · 🔒 bloqueado (pré-r
 
 - ✅ **A1. Papel #1 `code-reviewer`** — gold duro simétrico (6 bugs + 4 gêmeos-limpos), medido N≥10;
   workhorse custo-frontier identificado. *Pendente humano:* cravar a promoção (D5).
-- 🔄 **A2. Papel #2 `security-auditor`** — firmar contra a barra frontier única (gold já existe; re-medir).
+- 🔄 **A2. Papel #2 `security-auditor`** — re-medido (gold humano, 5 buggy + 2 clean over-flag; N=5;
+  pool CHINÊS). ACHADO HONESTO nº1 (instrumento): a persona de catálogo verbosa manda "query context
+  manager first" e o titular OBEDECIA — emitia JSON de pedido-de-contexto em vez de auditar (pass baixo,
+  artefato PURO do instrumento). Corrigido com `system_suffix` task-forcing (B4); re-medido → o titular
+  salta pro topo. ACHADO nº2
+  (saturação): pós-fix, a maioria dos modelos chineses fica quase no teto (detecção satura; réguas de detecção
+  permissivas) → o gold NÃO discrimina o topo; o eixo over-flag só separa o mais fraco (over-flag no caso
+  constant-time). SEM barra frontier (política 07-12: só chineses). AÇÃO p/ FIRMAR: (a) sempre aplicar o
+  `system_suffix` com personas verbosas; (b) gold precisa de casos MAIS DUROS (humano) p/ separar o topo.
+  NÃO promove (D5; dado saturado não justifica). Números privados em `_candidate_evals/` (gitignored).
 - 🔄 **A3. Papel #3 `qa/test-judge`** — gold DRAFT hand-revisado + medido EXPLORATÓRIO (recall-only, N=5,
   pool all-Chinese). ACHADO HONESTO: as réguas iniciais eram estreitas demais e SUB-contavam respostas
   CORRETAS (um modelo forte dizia "does not verify that dividing by zero raises ValueError" e a régua
