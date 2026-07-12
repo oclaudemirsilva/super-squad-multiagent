@@ -106,6 +106,55 @@ class TestRunRoles(unittest.TestCase):
         out = rr.run_roles([("code-reviewer", "x"), ("security-auditor", "y")], **COMMON)
         self.assertGreater(out["spent_usd"], 0)
 
+    def test_skill_composed_into_system(self):
+        from types import SimpleNamespace
+        seen = {}
+
+        def spy_make_job(key, prompt, slug, pin, pout, **kw):
+            seen[key.split("::")[1]] = kw.get("system")
+            return {"key": key, "slug": slug, "input": prompt}
+
+        def fake_load_skill(path):
+            return SimpleNamespace(name="pb", procedure="STEP1; STEP2", requires_script=False)
+
+        def fake_compose(system, skill):
+            return f"{system}\n\n## Skill {skill.name}\n{skill.procedure}"
+
+        common = dict(COMMON)
+        common.update(make_job_fn=spy_make_job, load_skill_fn=fake_load_skill, compose_fn=fake_compose)
+        out = rr.run_roles([{"role": "code-reviewer", "input": "x", "skill": "pb"}], **common)
+        self.assertEqual(out["tasks"][0]["skill"], "pb")
+        self.assertIn("STEP1; STEP2", seen["code-reviewer"])          # playbook composto
+        self.assertIn("SYS[code-reviewer]", seen["code-reviewer"])    # persona preservada
+
+    def test_skill_gate_fail_soft_per_task(self):
+        from super_squad.skills import SkillGateError
+        from types import SimpleNamespace
+
+        def gated_compose(system, skill):
+            raise SkillGateError("skill executa código (Fase 2)")
+
+        common = dict(COMMON)
+        common.update(load_skill_fn=lambda p: SimpleNamespace(name="x", requires_script=True),
+                      compose_fn=gated_compose)
+        out = rr.run_roles([{"role": "code-reviewer", "input": "x", "skill": "x"},
+                            {"role": "security-auditor", "input": "y"}], **common)
+        self.assertIsNotNone(out["tasks"][0]["error"])   # skill-gated → tarefa erra
+        self.assertIn("Fase 2", out["tasks"][0]["error"])
+        self.assertIsNone(out["tasks"][1]["error"])      # a outra segue (fail-soft)
+
+    def test_no_skill_uses_persona_system(self):
+        seen = {}
+
+        def spy_make_job(key, prompt, slug, pin, pout, **kw):
+            seen[key.split("::")[1]] = kw.get("system")
+            return {"key": key, "slug": slug, "input": prompt}
+
+        common = dict(COMMON)
+        common["make_job_fn"] = spy_make_job
+        rr.run_roles([{"role": "code-reviewer", "input": "x"}], **common)
+        self.assertEqual(seen["code-reviewer"], "SYS[code-reviewer]")  # sem skill = system puro
+
     def test_no_jobs_no_crash(self):
         # só papéis quebrados → nenhum job, sem run_squad, sem crash
         out = rr.run_roles([{"role": "ghost", "input": "x"}], **COMMON)

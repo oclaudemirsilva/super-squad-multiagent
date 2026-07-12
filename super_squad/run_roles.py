@@ -33,6 +33,7 @@ def run_roles(
     tasks: Sequence,
     *,
     roles_dir: "str | Path" = "roles/vendor",
+    skills_dir: "str | Path" = "roles/skills",
     api_key: "Optional[str]" = None,
     budget_usd: float = 0.50,
     temperature: float = 0.2,
@@ -43,15 +44,18 @@ def run_roles(
     make_job_fn: "Optional[Callable]" = None,
     load_role_fn: "Optional[Callable]" = None,
     roster_fn: "Optional[Callable]" = None,
+    load_skill_fn: "Optional[Callable]" = None,
+    compose_fn: "Optional[Callable]" = None,
 ) -> dict:
-    """Roda cada tarefa `{role, input, panel?, label?, instruction?}` em PARALELO (titular do papel
-    por default; `panel=True` roda todo o roster). Um só `run_squad` cobre todos os jobs. `instruction`
-    (opt-in) prefixa uma diretiva-tarefa clara ao input — recomendado com personas de catálogo verbosas
-    que, sem ela, emitem protocolo em vez do veredito (achado do smoke 07-12).
+    """Roda cada tarefa `{role, input, panel?, label?, instruction?, skill?}` em PARALELO (titular do
+    papel por default; `panel=True` roda todo o roster). Um só `run_squad` cobre todos os jobs.
+    `instruction` (opt-in) prefixa uma diretiva-tarefa ao input (achado do smoke 07-12). `skill` (opt-in,
+    D10) = nome de uma skill em `skills_dir` cujo playbook é COMPOSTO ao system prompt da persona
+    (`compose_system`) — o gate D10 vale: skill que executa código (Fase 2) faz a tarefa ERRAR (fail-soft),
+    não roda por fé.
 
-    Devolve `{tasks:[{role, label, persona, results:[{model,text,ok,cost_usd,error}], error}],
-    spent_usd}`. Tarefa com roster vazio/persona ausente → `error` preenchido, `results` vazio,
-    SEM abortar as outras."""
+    Devolve `{tasks:[{role, label, persona, skill, results:[...], error}], spent_usd}`. Tarefa com roster
+    vazio/persona ausente/skill-gated → `error` preenchido, SEM abortar as outras."""
     if load_role_fn is None:
         from .roles import load_role as load_role_fn
     if roster_fn is None:
@@ -60,6 +64,10 @@ def run_roles(
         from .squad import run_squad as run_squad_fn
     if make_job_fn is None:
         from .squad import make_openrouter_text_job as make_job_fn
+    if load_skill_fn is None:
+        from .skills import load_skill as load_skill_fn
+    if compose_fn is None:
+        from .skills import compose_system as compose_fn
 
     norm = [_normalize(t) for t in tasks]
     jobs = []
@@ -67,10 +75,17 @@ def run_roles(
     for i, t in enumerate(norm):
         role = t["role"]
         label = t.get("label", role)
-        entry = {"role": role, "label": label, "persona": None, "keys": [], "error": None}
+        entry = {"role": role, "label": label, "persona": None, "skill": t.get("skill"),
+                 "keys": [], "error": None}
         try:
             spec = load_role_fn(Path(roles_dir) / f"{role}.md")
             entry["persona"] = spec.name
+            # skill opt-in (D10): compõe o playbook ao system prompt. O gate (SkillGateError p/ skill que
+            # executa código) sobe aqui dentro do try → vira erro DA TAREFA, não roda por fé.
+            system = spec.system_prompt
+            if t.get("skill"):
+                skill = load_skill_fn(Path(skills_dir) / f"{t['skill']}.md")
+                system = compose_fn(system, skill)
             roster = list(roster_fn(role))
             if not roster:
                 raise RuntimeError(
@@ -86,7 +101,7 @@ def run_roles(
                 key = f"{i}::{role}::{slug}"
                 entry["keys"].append(key)
                 jobs.append(make_job_fn(key, body, slug, pin, pout,
-                                        system=spec.system_prompt, temperature=temperature,
+                                        system=system, temperature=temperature,
                                         timeout=timeout, api_key=api_key, max_tokens=max_tokens))
         except Exception as exc:  # noqa: BLE001 — papel quebrado vira erro DA TAREFA, não do lote
             entry["error"] = str(exc)
@@ -111,7 +126,8 @@ def run_roles(
                     "error": r.error,
                 })
         out_tasks.append({"role": entry["role"], "label": entry["label"],
-                          "persona": entry["persona"], "results": results, "error": entry["error"]})
+                          "persona": entry["persona"], "skill": entry["skill"],
+                          "results": results, "error": entry["error"]})
 
     return {"tasks": out_tasks,
             "spent_usd": report.total_cost_usd if report else 0.0}
