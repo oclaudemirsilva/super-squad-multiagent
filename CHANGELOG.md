@@ -2,6 +2,11 @@
 
 ## Não lançado
 
+- **Persona keystone `code-writer`** (`roles/vendor/code-writer.md`) — o implementer ESPECIALISTA, subagente
+  ATIVO do loop de automelhoria. Consultivo por design (devolve o PATCH como texto; `NEED:` se ambíguo;
+  `PATCH_SUMMARY:` no fim), `declared_tools=Read` → `single_shot=True` (roda no motor hoje, mensurável por
+  `role_eval`, sem Fase 2). O gate aplica o patch (padrão dogfood, começa sem OpenCode). Falta gold + medir + firmar.
+
 - **D3 (máquina)** — `role_eval(skill_path=...)`: compõe o playbook de uma skill ao system prompt da persona
   (reusa `skills.compose_system`, `load_skill_fn`/`compose_fn` injetáveis; o gate D10 sobe — skill de
   construtor levanta `SkillGateError`). É a costura para MEDIR `persona+skill` vs `persona-sozinha`. +1 teste.
