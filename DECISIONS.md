@@ -72,3 +72,24 @@ viaja com o subagent é `{persona_file, slug, preço}`. MAS: portável ≠ confi
 linha de roster medida (N>=5, gold humano) é um subagent confiável; sem medição é persona portável
 de qualidade desconhecida. O roster é medido contra um gold específico → transfere como prior forte,
 revalide se a tarefa-alvo difere. Ver `docs/design/subagent-portability.md`.
+
+## D12 — Pré-voo do GOLD: veta caso-limpo "não-limpo" antes de gastar (2026-07-11)
+Modo de falha recorrente (≥2×): o autor humano marca um trecho como LIMPO (sem bug), mas ele tem um
+problema legítimo e sutil (`os.path.basename` sozinho NÃO impede escape via symlink; `for...of await`
+sequencial tem custo de performance). A régua de over-flag então conta a minúcia CORRETA do modelo
+como "alucinação", e a medição sai enviesada — descoberto só lendo os outputs à mão, DEPOIS de queimar
+orçamento. `gold_preflight.py` mata isso na raiz: antes de usar um caso-limpo como âncora, roda a
+persona por um JUIZ MEDIDO N vezes e, se a taxa em que ele nomeia a vuln PROIBIDA passa do limiar, o
+caso é SUSPEITO → reprova fail-closed com os motivos citados. Ponto fino: a régua do gate ESPELHA a de
+scoring (`top_bug_forbids_ruler`), não `top_bug_clean_ruler` — um caso limpo de verdade ainda levanta
+preocupações defensáveis DIFERENTES que não são over-flag; puni-las geraria suspeito falso (a v1 do
+gate errou exatamente nisso e o dogfood pegou). Integridade preservada (D6): o modelo SINALIZA pra banca
+humana, não autora nem remove o caso. Wired opt-in no runner (`clean_preflight_judges`).
+
+## D13 — Política de shootout: uma âncora frontier + teto de gasto (2026-07-11)
+Cada shootout de papel fixa UMA âncora frontier como barra de referência (a que já se mostrou
+custo-dominante entre os frontier na medição privada) e concentra o pool nos candidatos baratos —
+o objetivo é achar o mais barato que EMPATA a barra, pra baratear o workhorse. A âncora já medida no
+mesmo gold é REUSADA, nunca re-rodada. Cada medição roda com teto de gasto (`budget_usd`, fail-soft:
+para ao bater o teto). QUAIS modelos são a âncora e os candidatos, e os números, ficam no roster
+PRIVADO (D1) — o repo público carrega só a política.

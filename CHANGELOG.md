@@ -36,6 +36,14 @@
   projeto/sessão usar um subagent medido com UMA chamada. `panel=True` roda todo o roster. +4 testes.
 - `registry`: env de override normaliza hífen→underscore (`AI_SQUAD_ROSTER_CODE_REVIEWER`, settável no
   shell; forma antiga com hífen ainda lida como fallback). Suíte 127.
+- `gold_preflight` — **pré-voo do GOLD** (D12): veta CASO-LIMPO "não-limpo" ANTES de gastar. Roda a
+  persona por um juiz MEDIDO N vezes e, se ele nomeia a vuln PROIBIDA acima do limiar, reprova
+  fail-closed com os motivos (revisão humana — o modelo SINALIZA, não autora; D6 intacto). Régua do
+  gate ESPELHA a de scoring (`top_bug_forbids_ruler`), não `top_bug_clean_ruler` — preocupação
+  defensável DIFERENTE não é over-flag (a v1 errou nisso; o dogfood pegou). Mata o modo-de-falha
+  recorrente "autor jurou limpo mas tinha bug real → over-flag enviesado".
+- `code_review_eval` — parâmetro opt-in `clean_preflight_judges`: roda o pré-voo do gold (fail-closed)
+  antes de gastar no pool inteiro. Default None = compat retroativa. +8 testes herméticos; suíte 136.
 
 ## 0.1.0 — 2026-07-08
 

@@ -31,8 +31,15 @@ def run_code_review_eval(
     temperature=0.4,
     timeout=120,
     max_tokens=None,
+    clean_preflight_judges=None,
 ) -> dict:
-    """Run the code review evaluation across models."""
+    """Run the code review evaluation across models.
+
+    `clean_preflight_judges` (opt-in, DIP): se uma lista de slugs de juiz for passada, roda o
+    PRÉ-VOO DO GOLD (`gold_preflight.assert_clean_cases_valid`) ANTES de gastar no pool inteiro —
+    fail-closed: se algum caso-limpo é suspeito de NÃO ser limpo (o juiz medido nomeia a vuln
+    proibida), levanta `GoldPreflightError` e NÃO mede. Mata o modo-de-falha 'autor jurou limpo mas
+    tinha bug real → over-flag enviesado' na raiz. Default None = pula (compat retroativa)."""
     # Load input data
     with open(cases_path, encoding="utf-8") as f:
         cases = json.load(f)
@@ -48,6 +55,15 @@ def run_code_review_eval(
             raise ValueError(f"Case {case['id']} is buggy but missing detect_any")
         if case["kind"] == "clean" and not case.get("forbid_any"):
             raise ValueError(f"Case {case['id']} is clean but missing forbid_any")
+
+    # Pré-voo do gold (opt-in, fail-closed): veta caso-limpo suspeito antes de queimar orçamento.
+    if clean_preflight_judges:
+        from .gold_preflight import assert_clean_cases_valid
+        assert_clean_cases_valid(
+            cases, system, clean_preflight_judges,
+            n=n, api_key=api_key, temperature=temperature, timeout=timeout,
+            max_tokens=max_tokens or 800, workers=workers,
+        )
 
     # Prepare checkpoint
     checkpoint_path = Path(f"{out_path}.ckpt.jsonl")
