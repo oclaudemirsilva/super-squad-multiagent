@@ -54,7 +54,13 @@ Legenda: ✅ feito · 🔄 em andamento · ⬜ a fazer · 🔒 bloqueado (pré-r
 - ✅ **E0.** Seam `BuilderRuntime` IMPLEMENTADO + gated: `super_squad/runtimes/base.py` (contrato +
   `NullBuilderRuntime` fail-closed + `assert_builder_preconditions`) + `runtimes/opencode.py` (adapter
   DESABILITADO por default). +12 testes. Unido à pilha, NÃO solto (sem worktree/caps/hardening_ack não executa).
-- 🔒 **E1.** Hardening A1–A5 (raio de explosão · segredo · injection · supply-chain · teto mid-loop) — pré-req DURO.
+- 🔄 **E1.** Hardening A1–A5 — primitivas de APLICAÇÃO SHIPPED (`runtimes/hardening.py`, +18 testes):
+  `WorktreeManager` (A1 raio de explosão: cria/destrói worktree isolada, `session` sempre remove) ·
+  `redact_secrets` (A2: chaves/tokens fora de prompt/output/log, idempotente) · `is_bash_allowed`
+  (A3 injection: só executável allowlistado, bloqueia encadeamento de shell) · `SpendGuard` (A5 teto
+  mid-loop thread-safe) · `enforce_permission` (despacho fail-closed sobre `PermissionProfile`). A4
+  (supply-chain) coberto em parte pelo network-gate + allowlist (sem `pip install` arbitrário); política
+  completa de supply-chain e o `hardening_ack` HUMANO seguem pré-req DURO da ATIVAÇÃO (E2).
 - 🔄 **E2.** Adapter OpenCode existe (scaffold); execução REAL não fiada — falta §9 (verificar flags/headless do
   binário) + `enabled=True`. Só ATIVA pós-hardening + roster de construtor medido.
 - 🔒 **E3.** Roster de construtor RE-medido (persona-construtora medida em modo consultivo primeiro, D8).

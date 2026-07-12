@@ -2,6 +2,14 @@
 
 ## Não lançado
 
+- **E1** — `runtimes/hardening.py`: primitivas PURAS/injetáveis de aplicação dos guarda-corpos A1–A5 da
+  Fase 2. `redact_secrets` (A2, idempotente) · `is_bash_allowed`/`assert_bash_allowed` (A3, anti-encadeamento
+  de shell) · `WorktreeManager` com `session` try/finally (A1, raio de explosão) · `SpendGuard` thread-safe
+  (A5, teto mid-loop) · `enforce_permission` (despacho fail-closed sobre `PermissionProfile`). stdlib-only,
+  0 rede/0 I/O real (subprocess injetado). +18 testes. Complementa o `spend_ledger` (teto global por janela);
+  não ATIVA construtor (segue gated por E2 + hardening_ack humano). Rascunho braçal (deepseek), gate/fix meu:
+  docstring de módulo reordenada, `capture_output/text` no subprocess, quebra-de-linha na detecção de shell.
+
 - **B3** — guarda de pré-voo de ROSTER (`preflight.assert_roster_live`, catálogo vivo do OpenRouter)
   wired como opt-in fail-closed nas duas portas de gasto: `run_roles(preflight=...)` (checa os papéis
   distintos) e `role_eval.run_role_eval(preflight_pool=...)` (adapta o `pool` a um roster sintético).
