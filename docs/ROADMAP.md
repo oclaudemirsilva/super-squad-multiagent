@@ -1,0 +1,60 @@
+# Roadmap — a máquina unificada
+
+> O que falta para a pilha `subagente (D11) + skill (D10) → modelo MEDIDO (este motor) → substrato ruflo (D14)`
+> virar uma máquina-de-resolver-problemas autônoma, barata e auditável. Status honesto por track.
+> Números/slugs medidos NÃO entram aqui (moat, D1) — ficam no roster privado.
+
+Legenda: ✅ feito · 🔄 em andamento · ⬜ a fazer · 🔒 bloqueado (pré-req)
+
+## Track A — Firmar o CÉREBRO (papéis medidos; a ordem é o flywheel, D9)
+
+- ✅ **A1. Papel #1 `code-reviewer`** — gold duro simétrico (6 bugs + 4 gêmeos-limpos), medido N≥10;
+  workhorse custo-frontier identificado. *Pendente humano:* cravar a promoção (D5).
+- 🔄 **A2. Papel #2 `security-auditor`** — firmar contra a barra frontier única (gold já existe; re-medir).
+- ⬜ **A3. Papel #3 `qa/test-judge`** — autorar gold (D6, mão humana) + vendorizar persona + medir.
+- ⬜ **A4. Papel #4 `architect-reviewer`** — gold + medir.
+- ⬜ **A5. Papel #5 `debugger`** — gold + medir.
+- ✅ **A6. Gate anti-erro-de-autor** (`gold_preflight`) — veta caso-limpo "não-limpo" antes de gastar (D12).
+  *Usar em TODO gold novo (A2–A5).*
+
+## Track B — Runner role-agnóstico (velocidade, DIP)
+
+- ⬜ **B1.** Generalizar o runner: régua vem do gold via `resolve_ruler` (hoje `code_review_eval` é específico
+  do papel). Um runner só serve qualquer papel consultivo.
+- ✅ **B2.** Checkpoint idempotente + teto de gasto (já existem; herdar no runner genérico).
+- ⬜ **B3.** Pré-voo de roster (`preflight`) + pré-voo de gold (`gold_preflight`) como guarda padrão de todo lote.
+
+## Track C — União com ruflo (o SUBSTRATO, D14)
+
+- ✅ **C0.** Seam desenhado (`docs/design/ruflo-union-routing-seam.md`); ruflo confirmado 3-tier só-Claude.
+- ⬜ **C1.** Implementar `RoutingProvider` + `BoosterAdapter` (Tier-1 trivial → Agent Booster $0; resto → roster medido).
+- 🔒 **C2.** Ligar o MCP do ruflo (`claude mcp add ruflo …`, USER) + `memory-bridge` (Graph-RAG cross-sessão).
+- ⬜ **C3.** Experimento N≥5, 3 braços: (A) Super Squad só · (B) +booster $0 · (C) +memória ruflo. Medir o ganho.
+- ⬜ **C4.** Plugar SÓ o braço que mover o número (mesmo gate do D10). Se não move, fica fora.
+
+## Track D — Skills (a CAPACIDADE, D10)
+
+- ⬜ **D1.** Ingestor `SkillSpec` (espelha `roles.py`): injeta procedimento/playbook num job.
+- ⬜ **D2.** Licença POR-skill (catálogo MIT não cobre o upstream linkado — ler antes de empacotar).
+- ⬜ **D3.** Medir `persona+skill` vs `persona-sozinha` (N≥5); skill que não move o número não entra.
+- 🔒 **D4.** Skill com SCRIPT executável = execução de código → Fase 2 (atrás do hardening A1–A5).
+
+## Track E — Construtores Fase 2 (agentic — o mais ARRISCADO, gated)
+
+- ✅ **E0.** Seam `BuilderRuntime` + threat-model desenhados (não implementados).
+- 🔒 **E1.** Hardening A1–A5 (raio de explosão · segredo · injection · supply-chain · teto mid-loop) — pré-req DURO.
+- 🔒 **E2.** Adapter de runtime de construtor (OpenCode candidato) atrás de seam DIP + worktree + teto na fronteira.
+- 🔒 **E3.** Roster de construtor RE-medido (persona-construtora medida em modo consultivo primeiro, D8).
+
+## Track F — Governança, produto, reuso
+
+- ✅ **F1.** `run_role` + CLI (porta da frente: usar um subagent medido com UMA chamada).
+- ⬜ **F2.** Repo PRIVADO de medições (versionar/backup os números fora do público, D1).
+- ⬜ **F3.** Declaração pública ANONIMIZADA do benchmark (método + valor, sem slug/número).
+- ⬜ **F4.** Nome do produto (em aberto — o atual subvende o moat de medição/custo-frontier).
+
+## Ordem sugerida (caminho crítico)
+
+A2/A3 (mais papéis medidos = mais moat) **em paralelo com** B1 (runner genérico acelera todos os papéis).
+C1–C4 (união ruflo) quando ≥3 papéis firmes derem massa crítica pra medir o ganho de memória. D e E são
+camadas posteriores, gated por medição e hardening. F corre em background.

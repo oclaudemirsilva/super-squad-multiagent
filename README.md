@@ -97,10 +97,11 @@ the target task differs materially. Today all subagents are consultative (read &
 
 ## Where the architecture lives (read next, if you are an agent landing here)
 
-- `DECISIONS.md` — the design decisions D1–D11 (why the roster ships empty, why measurement is private, etc.).
+- `DECISIONS.md` — the design decisions D1–D14 (why the roster ships empty, why measurement is private, etc.).
 - `docs/design/subagent-portability.md` — what a subagent is and the full reuse contract.
 - `docs/design/flywheel-bootstrap.md` — the self-improving loop: measure roles in dependency order (reviewer → qa → architect → security → debugger → builders), on OpenRouter, cheapest model that matches the frontier.
 - `docs/design/opencode-builder-runtime.md` — the Phase-2 builder-runtime seam (not implemented).
+- `docs/design/ruflo-union-routing-seam.md` — the `RoutingProvider` seam uniting the fleet with a substrate (this engine = model authority; ruflo = cross-session memory + cost + $0 tier-1 booster). Design, not implemented (D14).
 - `docs/security/threat-model.md` — A1–A5 execution hardening (hard pre-reqs before any builder runs).
 
 ## What stays yours
