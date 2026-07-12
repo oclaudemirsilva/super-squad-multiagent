@@ -22,3 +22,15 @@ Copiadas de **VoltAgent — awesome subagents** (MIT License):
 
 O conteúdo dos `.md` é dos autores originais. A maquinaria que os ingere e roteia (este
 módulo) é do Super Squad (MIT, ver LICENSE na raiz).
+
+## Autoradas para este projeto (proveniência distinta — NÃO do catálogo)
+
+Estas foram **rascunhadas pelo próprio exército** (o workhorse chinês medido gerou o draft; humano
+no gate validou formato e sentido) — dogfood da esteira. São originais deste projeto, não do catálogo
+VoltAgent, e ficam no mesmo diretório só para o `run_role`/`run_roles` as descobrir pelo caminho padrão:
+
+- `qa-test-judge.md` · `architect-reviewer.md` · `debugger.md` · `performance-auditor.md`
+- `api-designer.md` · `eval-engineer.md` · `technical-writer.md` · `data-analyst.md`
+
+Cada uma é **consultiva** (lê e julga, sem executar tools) e termina com um contrato `VERDICT:`
+parseável. Ainda NÃO medidas (roster = prior semeado, não medido — ver `roles/MANIFEST.md`).
