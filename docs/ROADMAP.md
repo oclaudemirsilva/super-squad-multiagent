@@ -72,7 +72,9 @@ Legenda: ✅ feito · 🔄 em andamento · ⬜ a fazer · 🔒 bloqueado (pré-r
   (`roles/skills/test-design-boundaries.md`, MIT, prosa própria) passa o gate. +3 testes. Vendorizar uma skill
   de TERCEIRO (com a licença real do upstream) segue passo HUMANO — o módulo não baixa/empacota; agora a
   proveniência é auditável em vez de só docstring.
-- ⬜ **D3.** Medir `persona+skill` vs `persona-sozinha` (N≥5) via `role_eval`; skill que não move o número não entra.
+- 🔄 **D3.** MÁQUINA pronta: `role_eval(skill_path=...)` compõe a skill ao system prompt (mesma costura do
+  `run_roles`; gate D10 sobe aqui — skill de construtor = Fase 2 não roda por fé). +1 teste hermético. Falta
+  só DISPARAR a medição `persona+skill` vs `persona-sozinha` (N≥5) — deferida (foco atual = estrutura).
 - ✅ **D4.** Gate no lugar: `compose_system` RECUSA skill que executa código (`requires_script`) em single-shot
   (`SkillGateError`) — script/tool-de-construtor = Fase 2 atrás do hardening A1–A5.
 

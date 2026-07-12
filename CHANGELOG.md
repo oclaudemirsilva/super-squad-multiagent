@@ -2,6 +2,10 @@
 
 ## Não lançado
 
+- **D3 (máquina)** — `role_eval(skill_path=...)`: compõe o playbook de uma skill ao system prompt da persona
+  (reusa `skills.compose_system`, `load_skill_fn`/`compose_fn` injetáveis; o gate D10 sobe — skill de
+  construtor levanta `SkillGateError`). É a costura para MEDIR `persona+skill` vs `persona-sozinha`. +1 teste.
+
 - **B4** — `role_eval(system_suffix=...)`: neutralizador opt-in de ruído de protocolo. Personas de catálogo
   verbosas ("query context manager first") fazem alguns modelos PEDIREM contexto em vez de executar a tarefa,
   confundindo a medição (o modelo parece fraco; é o instrumento). O sufixo task-forcing anexa ao system prompt

@@ -77,10 +77,13 @@ def run_role_eval(
     timeout=120,
     max_tokens=None,
     system_suffix=None,
+    skill_path=None,
     clean_preflight_judges=None,
     preflight_pool=False,
     preflight_pool_fn: "Optional[Callable]" = None,
     load_role_fn: "Optional[Callable]" = None,
+    load_skill_fn: "Optional[Callable]" = None,
+    compose_fn: "Optional[Callable]" = None,
     run_squad_fn: "Optional[Callable]" = None,
     make_job_fn: "Optional[Callable]" = None,
 ) -> dict:
@@ -91,6 +94,10 @@ def run_role_eval(
     idempotente por `out_path`. `clean_preflight_judges` (opt-in) roda o pré-voo do gold antes de gastar."""
     if load_role_fn is None:
         from super_squad.roles import load_role as load_role_fn
+    if load_skill_fn is None:
+        from super_squad.skills import load_skill as load_skill_fn
+    if compose_fn is None:
+        from super_squad.skills import compose_system as compose_fn
     if run_squad_fn is None:
         from super_squad.squad import run_squad as run_squad_fn
     if make_job_fn is None:
@@ -100,6 +107,12 @@ def run_role_eval(
         cases = json.load(f)
     persona = load_role_fn(persona_path)
     system = persona.system_prompt
+    # skill opt-in (D3/D10): compõe o playbook da skill ao system prompt p/ MEDIR o ganho persona+skill
+    # vs persona-sozinha. O gate D10 sobe aqui (skill que executa código = Fase 2 → SkillGateError), então
+    # uma skill de construtor não é medida por fé em single-shot. Skill que não move o número não entra (D10).
+    if skill_path:
+        skill = load_skill_fn(skill_path)
+        system = compose_fn(system, skill)
     # Neutralizador de RUÍDO DE PROTOCOLO (opt-in): personas de catálogo VERBOSAS mandam "query context
     # manager first" e alguns modelos OBEDECEM — emitem um pedido de contexto em vez de fazer a tarefa,
     # confundindo a medição (o modelo parece fraco, mas é o instrumento). Um sufixo de sistema task-forcing

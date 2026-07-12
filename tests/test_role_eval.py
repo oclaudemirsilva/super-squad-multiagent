@@ -118,6 +118,25 @@ class TestRoleEval(unittest.TestCase):
             self.assertIn("Pass Rate", md)
             self.assertIn("vendor/model-a", md)
 
+    def test_skill_composed_into_system(self):
+        from types import SimpleNamespace
+        seen = {}
+
+        def spy_make_job(key, prompt, slug, pin, pout, **kw):
+            seen["system"] = kw.get("system")
+            return {"key": key, "prompt": prompt, "slug": slug}
+        run = make_fake_run_squad(lambda cid: "approved")
+        with TemporaryDirectory() as d:
+            re.run_role_eval(self._write(d, GOLD_GENERIC), None, POOL,
+                             out_path=str(Path(d) / "o.json"), api_key="k", run_squad_fn=run,
+                             load_role_fn=fake_load_role, make_job_fn=spy_make_job,
+                             skill_path="whatever.md",
+                             load_skill_fn=lambda p: SimpleNamespace(name="pb", procedure="STEP-A",
+                                                                     requires_script=False),
+                             compose_fn=lambda sysp, sk: f"{sysp}\n## {sk.name}\n{sk.procedure}")
+        self.assertIn("SYS", seen["system"])       # persona preservada
+        self.assertIn("STEP-A", seen["system"])    # playbook da skill composto
+
     def test_system_suffix_appended_to_persona(self):
         seen = {}
 
