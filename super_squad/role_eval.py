@@ -91,7 +91,13 @@ def run_role_eval(
     N reps/caso, régua VINDA DO GOLD por caso. Devolve o resumo `{by_slug, ...}` e escreve em `out_path`.
 
     Fail-closed: um caso sem régua resolvível ABORTA a validação (não mede sem saber pontuar). Checkpoint
-    idempotente por `out_path`. `clean_preflight_judges` (opt-in) roda o pré-voo do gold antes de gastar."""
+    idempotente por `out_path`.
+
+    Opt-ins (todos default OFF/None, aditivos): `clean_preflight_judges` roda o pré-voo do GOLD (D12) antes
+    de gastar; `preflight_pool` roda o pré-voo do POOL (B3, slug vivo no catálogo, fail-closed) antes de
+    gastar; `system_suffix` anexa uma diretiva task-forcing ao system prompt (B4, neutraliza ruído de
+    protocolo de persona verbosa) SEM tocar o gold; `skill_path` compõe uma skill ao system prompt (D3/D10,
+    p/ medir persona+skill — o gate D10 recusa skill de construtor). `*_fn` são injetáveis p/ teste hermético."""
     if load_role_fn is None:
         from super_squad.roles import load_role as load_role_fn
     if load_skill_fn is None:
