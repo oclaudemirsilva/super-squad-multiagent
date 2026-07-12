@@ -77,6 +77,30 @@ class TestSkills(unittest.TestCase):
             loaded = sk.load_skills_dir(d)
             self.assertEqual(set(loaded), {"root-cause-playbook", "autofix"})
 
+    # --- D2: proveniência de licença por-skill (checagem humana, fail-closed) ---
+    def test_license_parsed_and_cleared(self):
+        text = SKILL_CONSULTIVA.replace("allowed-tools: Read, Grep",
+                                        "allowed-tools: Read, Grep\nlicense: MIT\nsource: própria")
+        s = sk.parse_skill(text)
+        self.assertEqual(s.license, "MIT")
+        self.assertEqual(s.source, "própria")
+        self.assertTrue(s.license_cleared)
+
+    def test_missing_or_draft_license_not_cleared(self):
+        self.assertIsNone(sk.parse_skill(SKILL_CONSULTIVA).license)      # ausente
+        self.assertFalse(sk.parse_skill(SKILL_CONSULTIVA).license_cleared)  # fail-closed
+        draft = SKILL_CONSULTIVA.replace("allowed-tools: Read, Grep",
+                                         "allowed-tools: Read, Grep\nlicense: DRAFT")
+        self.assertFalse(sk.parse_skill(draft).license_cleared)         # provisória = não liberada
+
+    def test_ingested_repo_skill_is_cleared(self):
+        # a skill real ingerida (D2) carrega licença explícita e passa o gate de proveniência
+        repo_skill = Path(__file__).resolve().parents[1] / "roles" / "skills" / "test-design-boundaries.md"
+        s = sk.load_skill(repo_skill)
+        self.assertEqual(s.license, "MIT")
+        self.assertTrue(s.license_cleared)
+        self.assertFalse(s.requires_script)   # consultiva, não executa código
+
 
 if __name__ == "__main__":
     unittest.main()

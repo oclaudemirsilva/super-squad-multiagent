@@ -31,13 +31,25 @@ _SCRIPT_RE = re.compile(r"(?:\b(?:python|node|bash|sh|npx|\./)\s+\S+\.(?:py|sh|m
 @dataclass(frozen=True)
 class SkillSpec:
     """Skill normalizada. `procedure` é o corpo (o playbook, o que se injeta junto do system prompt);
-    `allowed_tools` são as tools que a skill declara; `requires_script` True = executa código (Fase 2)."""
+    `allowed_tools` são as tools que a skill declara; `requires_script` True = executa código (Fase 2).
+
+    Proveniência de LICENÇA (D10, checagem humana): `license` e `source` vêm do frontmatter. `license`
+    ausente/`DRAFT`/`UNKNOWN` → `license_cleared=False` (a licença ainda NÃO foi confirmada por humano).
+    O módulo só CARREGA e EXPÕE isso; não baixa nem empacota — a bênção da licença é do humano."""
     name: str
     description: str
     procedure: str
     allowed_tools: "tuple[str, ...]"
     requires_script: bool
+    license: Optional[str] = None
+    source: Optional[str] = None
     source_path: Optional[str] = None
+
+    @property
+    def license_cleared(self) -> bool:
+        """True só se há uma licença explícita e não-provisória. Fail-closed: sem licença = não liberada."""
+        lic = (self.license or "").strip().upper()
+        return bool(lic) and lic not in {"DRAFT", "UNKNOWN", "TBD", "PENDING"}
 
 
 def _detect_requires_script(front: dict, body: str, tools: "tuple[str, ...]") -> bool:
@@ -60,6 +72,8 @@ def parse_skill(text: str, source_path: "Optional[str]" = None) -> SkillSpec:
         procedure=body.strip(),
         allowed_tools=tools,
         requires_script=_detect_requires_script(front, body, tools),
+        license=front.get("license") or None,
+        source=front.get("source") or None,
         source_path=source_path,
     )
 

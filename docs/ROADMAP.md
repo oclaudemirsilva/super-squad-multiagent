@@ -43,8 +43,11 @@ Legenda: ✅ feito · 🔄 em andamento · ⬜ a fazer · 🔒 bloqueado (pré-r
 
 - ✅ **D1.** `skills.py` — ingestor `SkillSpec` (espelha `roles.py`, reusa o parser): `compose_system`
   funde persona⊕skill. +7 testes.
-- ⬜ **D2.** Licença POR-skill (catálogo MIT não cobre o upstream linkado — ler antes de empacotar). Registrado
-  na docstring; a checagem é humana (o módulo não baixa/empacota, só ingere arquivo local).
+- 🔄 **D2.** Licença POR-skill agora é campo de PRIMEIRA CLASSE: `SkillSpec.license`/`.source` do frontmatter +
+  `.license_cleared` fail-closed (ausente/DRAFT/UNKNOWN = NÃO liberada). Uma skill consultiva real ingerida
+  (`roles/skills/test-design-boundaries.md`, MIT, prosa própria) passa o gate. +3 testes. Vendorizar uma skill
+  de TERCEIRO (com a licença real do upstream) segue passo HUMANO — o módulo não baixa/empacota; agora a
+  proveniência é auditável em vez de só docstring.
 - ⬜ **D3.** Medir `persona+skill` vs `persona-sozinha` (N≥5) via `role_eval`; skill que não move o número não entra.
 - ✅ **D4.** Gate no lugar: `compose_system` RECUSA skill que executa código (`requires_script`) em single-shot
   (`SkillGateError`) — script/tool-de-construtor = Fase 2 atrás do hardening A1–A5.

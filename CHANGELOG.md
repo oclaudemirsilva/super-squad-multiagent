@@ -2,6 +2,12 @@
 
 ## Não lançado
 
+- **D2** — proveniência de LICENÇA por-skill vira campo de primeira classe: `SkillSpec.license`/`.source`
+  (frontmatter) + `.license_cleared` fail-closed (licença ausente/DRAFT/UNKNOWN = não liberada). Ingerida
+  uma skill consultiva real (`roles/skills/test-design-boundaries.md`, MIT, prosa própria; método =
+  partição de equivalência + valor-limite, conhecimento público). +3 testes. Vendorizar skill de terceiro
+  segue passo humano (o módulo não baixa/empacota); a proveniência agora é auditável, não só docstring.
+
 - **E2** — `runtimes/opencode.py`: sequência §3 do adapter FIADA (pré-voo teto global → config efêmera →
   invocação headless → git diff → parse usage → ledger) + telemetria `builder_start`/`builder_end` (OCP,
   fail-soft). Tudo INJETÁVEL (subprocess/command_builder/parse_usage/check_budget/record_spend/write_config)
