@@ -161,6 +161,22 @@ class TestRunRoles(unittest.TestCase):
         self.assertIsNotNone(out["tasks"][0]["error"])
         self.assertEqual(out["spent_usd"], 0.0)
 
+    def test_system_suffix_global_and_per_task(self):
+        seen = {}
+
+        def spy_make_job(key, prompt, slug, pin, pout, **kw):
+            seen[key.split("::")[1]] = kw.get("system")
+            return {"key": key, "slug": slug, "input": prompt}
+
+        common = dict(COMMON)
+        common["make_job_fn"] = spy_make_job
+        rr.run_roles([{"role": "code-reviewer", "input": "x"},
+                      {"role": "security-auditor", "input": "y", "system_suffix": "PER-TASK-DIRECTIVE"}],
+                     system_suffix="GLOBAL-DIRECTIVE", **common)
+        self.assertIn("GLOBAL-DIRECTIVE", seen["code-reviewer"])       # global aplica
+        self.assertIn("PER-TASK-DIRECTIVE", seen["security-auditor"])  # por-tarefa sobrepõe
+        self.assertNotIn("GLOBAL-DIRECTIVE", seen["security-auditor"])
+
     # --- B3: guarda de pré-voo de roster (opt-in, fail-closed) ---
     def test_preflight_off_by_default_never_called(self):
         seen = {"called": False}

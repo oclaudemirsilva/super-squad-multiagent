@@ -40,6 +40,7 @@ def run_roles(
     max_tokens: "Optional[int]" = None,
     timeout: int = 120,
     workers: "Optional[int]" = None,
+    system_suffix: "Optional[str]" = None,
     preflight: bool = False,
     preflight_fn: "Optional[Callable]" = None,
     run_squad_fn: "Optional[Callable]" = None,
@@ -100,6 +101,12 @@ def run_roles(
             if t.get("skill"):
                 skill = load_skill_fn(Path(skills_dir) / f"{t['skill']}.md")
                 system = compose_fn(system, skill)
+            # neutralizador de ruído de protocolo (opt-in, mesmo knob do role_eval/B4): personas verbosas
+            # de catálogo mandam "query context manager first" e alguns modelos OBEDECEM em vez de executar.
+            # Aplica DEPOIS da skill (a diretiva task-forcing vence). Por-tarefa `system_suffix` sobrepõe o global.
+            suffix = t.get("system_suffix", system_suffix)
+            if suffix:
+                system = f"{system.strip()}\n\n{suffix.strip()}"
             roster = list(roster_fn(role))
             if not roster:
                 raise RuntimeError(
