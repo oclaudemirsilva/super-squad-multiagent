@@ -54,8 +54,21 @@ O gargalo é sempre o GOLD, não a persona.**
   2. `qa-test-judge` — endurecer o gold (casos-limpos/over-flag); julga os testes.
 - **Onda 2 — os ATIVOS (especialistas que FAZEM; a keystone do "ativo"):**
   3. **`implementer`/`code-writer`** — escreve a mudança. ✅ PERSONA AUTORADA 07-12 (`roles/vendor/code-writer.md`,
-     consultiva: devolve o PATCH como texto, o gate aplica — encaixa no dogfood sem OpenCode). **Falta o GOLD**
-     (humano: spec+código→patch esperado, régua estrutural) + medir (pool chinês) + firmar. É o 1º a medir na Onda 2.
+     consultiva: devolve o PATCH como texto, o gate aplica — encaixa no dogfood sem OpenCode). Medir + firmar
+     (pool chinês). O GOLD dele vem SEM autoria manual (ver abaixo). É o 1º a medir na Onda 2.
+
+### ★ COMO OBTER GOLDS SEM AUTORIA MANUAL (decidido 07-12) — DESTRAVA o code-writer
+Distinção: papéis de JUÍZO (over-flag) precisam de verdade humana; papéis ATIVOS têm verdade EXECUTÁVEL.
+Para os ativos (writer/test/debugger) a régua é OBJETIVA — não se autora um "patch esperado":
+- **CONSTRUIR (1º na próxima sessão, estrutura, zero-gasto):**
+  1. `execution_ruler` em `rulers.py` — "aplica o patch → roda a suíte → passou?" (régua de EXECUÇÃO, não de texto).
+  2. `git_harvester` — gera casos a partir do HISTÓRICO de fixes: commit-de-fix → pai = código "antes", msg/issue =
+     spec, o TESTE que o fix faz passar = oráculo. Verdade HUMANA (o dev rotulou ao consertar), NÃO autofagia.
+- **LINHA DURA:** o modelo MEDIDO nunca autora o próprio juiz. Harvestar trabalho de OUTROS humanos = ok.
+- **CUIDADO DE VAZAMENTO:** modelos podem ter MEMORIZADO fixes públicos famosos → preferir commits recentes/privados,
+  de-dup por fonte (group_key=source), senão o número mente pra cima. Vale a lição do split-por-source já medida.
+- Para papéis de JUÍZO (qa over-flag, security): baratear o humano via COLHER (git/issues/CVEs) + DRAFT→ratificar
+  + o gate `gold_preflight` (D12). Não elimina o humano; torna-o minutos, não horas.
   4. **`test-author`** — escreve testes p/ a mudança → o loop se auto-verifica.
   5. **`debugger`** — diagnostica falhas no loop (persona existe; falta gold).
 - **Onda 3 — meta/estrutura (guardam a evolução):**
