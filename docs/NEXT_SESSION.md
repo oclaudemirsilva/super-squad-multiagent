@@ -35,16 +35,75 @@ união das forças:
 - **Persona verbosa** → sempre `system_suffix`. **Reasoning models** (glm-*/*-thinking/r1) → `max_tokens≥2000` senão VÊM VAZIOS.
 - **Foco atual = ESTRUTURA** (não gastar em mais shootout agora). Gold humano (D6), promoção humana (D5).
 
-## Próximos passos — por prioridade (o que destrava mais)
+## ★ PRIORIDADE-MÃE (user 07-12): subagentes ESPECIALISTAS ATIVOS → automelhoria contínua do projeto
 
-1. **Golds mais DUROS (humano, D6)** — os atuais saturam. Sem isso não firma titular de papel nenhum.
-   Concreto: A3 precisa de casos-LIMPOS (over-flag) + régua verdict-aware; A2 precisa de vulns mais sutis
-   + mais clean traps; apertar réguas de detecção permissivas (substring "alg"/"signature"/"redirect").
-2. **A4 architect-reviewer / A5 debugger** — autorar gold DRAFT (minha mão, marcar DRAFT p/ bênção) + medir.
-3. **Ligar o OpenCode (Fase 2)** — verificar §9 (flags reais do binário), injetar `command_builder` verificado,
-   `enabled=True` + `hardening_ack=True`. Só depois de um roster de construtor medido.
-4. **Conectar o ruflo (Track C)** — `claude mcp add ruflo …` + expor booster callable-de-Python → medir o ganho
-   (N≥5, 3 braços: só squad / +booster / +memória) → plugar só o que mover o número.
+O norte não é "mais revisores"; é **destravar subagentes ESPECIALISTAS que trabalham ATIVAMENTE na melhoria
+e evolução do projeto**, formando um loop de **automelhoria contínua**. "Ativo" = quem ESCREVE/CONSERTA/TESTA,
+não só quem julga. Os 11 atuais são todos CONSULTIVOS (revisam) → falta a metade que RESOLVE.
+
+**INSIGHT: o loop de automelhoria começa SEM OpenCode**, via o padrão DOGFOOD (writer medido rascunha →
+reviewer+qa+security medidos fiscalizam → gate aplica → testes rodam → debugger no erro → repete). O OpenCode
+(Fase 2) só AUTOMATIZA o passo "aplica" depois; não é pré-requisito pra começar a evoluir o projeto.
+
+**Subagentes a destravar, em ordem de dependência (D9). Destravar = eu autoro a PERSONA especialista +
+autoramos/bendizemos o GOLD (humano, D6) + eu MEÇO (pool chinês, `system_suffix`, N≥5) + firma (D5).
+O gargalo é sempre o GOLD, não a persona.**
+
+- **Onda 1 — o FISCAL (torna os ativos confiáveis; firmar PRIMEIRO):**
+  1. `code-reviewer` — quase firme; é o gate do output do writer. **Firmar primeiro.**
+  2. `qa-test-judge` — endurecer o gold (casos-limpos/over-flag); julga os testes.
+- **Onda 2 — os ATIVOS (especialistas que FAZEM; a keystone do "ativo"):**
+  3. **`implementer`/`code-writer`** — escreve a mudança (temos `code_writer.py`, falta papel+gold medido). KEYSTONE.
+  4. **`test-author`** — escreve testes p/ a mudança → o loop se auto-verifica.
+  5. **`debugger`** — diagnostica falhas no loop (persona existe; falta gold).
+- **Onda 3 — meta/estrutura (guardam a evolução):**
+  6. `architect-reviewer` — a estrutura não apodrece enquanto evolui.
+  7. `eval-engineer` — melhora os próprios golds/réguas (automelhoria da MEDIÇÃO).
+- **Onda 4 — especialistas de DOMÍNIO do produto** (quando apontar o loop pro ViralCutter/FrameOracle):
+  ex. pipeline-de-vídeo · caption/kinetic-text · modelagem · render/ffmpeg. Precisam de golds de domínio.
+
+**O loop (automelhoria contínua):** `implementer` rascunha → painel medido (`code-reviewer`+`qa`+`security`)
+fiscaliza → gate aplica (eu; depois OpenCode) → suíte roda → `debugger` no erro → repete, com critério de
+parada + teto de gasto. É o `docs/design/flywheel-bootstrap.md`, faltando o ORQUESTRADOR de loop (esboçar).
+
+---
+
+## FASE 2 / OpenCode — automatiza o passo "aplica" (em RAMPA, não a chave a frio)
+
+> **AUTORIZAÇÃO do user (07-12): "vc pode ligar o opencode"** — o portão HUMANO de `enabled=True` está
+> LIBERADO (o Claude pode ativar). MAS dois pré-requisitos FÍSICOS continuam de pé, independentes de permissão:
+> **(0) o OpenCode NÃO está instalado** nesta máquina (verificado 07-12: fora do PATH, sem `~/.opencode`, não é
+> pacote npm global) → **instalar primeiro**; **(§9) as flags reais do binário não foram verificadas** → o
+> `command_builder=None` recusa por design até validar. Ou seja: autorização ≠ capacidade. Sequência abaixo.
+
+Ordem acordada (flywheel D9: o fiscal medido vem ANTES do construtor). "Iniciar" = rampa de acesso segura;
+`enabled=True` é o FIM da rampa, numa tarefa trivial, com o user no gate do merge.
+
+**Passo 0 (pré-requisito físico):** INSTALAR o OpenCode + confirmar que roda. Sem binário, nada de §9/ativação.
+
+**Eu faço sozinho (zero-gasto, nada ativa):**
+1. **Esboçar o ORQUESTRADOR DE LOOP** — decompõe problema → roteia pros subagentes → integra → VERIFICA
+   (régua/juiz determinístico) → critério de parada + teto de gasto. Construtor segue GATED. É a peça que
+   falta pra "loop por horas" ter sentido (hoje só há `run_roles` = 1 fan-out, sem laço/verificação/parada).
+2. **Medir um BUILDER em modo CONSULTIVO (D8)** — diff no prompt, nada toca o disco; sinal de qualidade de
+   construção sem risco. Pool chinês (D16), `system_suffix` ligado, `max_tokens≥2000`.
+
+**Precisa do HUMANO (a §9 reserva supervisão):**
+3. **Verificar a §9 JUNTOS** — rodar o OpenCode UMA vez com o user olhando p/ aprender as flags reais
+   (headless, parse de usage, permissões). Sem isso o `command_builder` recusa por design (portão 3 do E2).
+4. **Firmar ≥1 fiscal (code-reviewer)** — endurecer 1 gold + medir + o user bendiz (D5/D6). É o gate que
+   fiscaliza o construtor.
+
+**Só DEPOIS de (3)+(4):** 1º build ENJAULADO numa tarefa trivial, `enabled=True`+`hardening_ack=True`, user
+no gate do merge. Critério de "pode ligar": §9 verificada + 1 fiscal medido + loop-com-verificação existe +
+tarefa trivial + user no merge.
+
+### Depois da Fase 2 (backlog, mesma prioridade honesta)
+- **Golds mais DUROS (humano, D6)** — os atuais SATURAM; A3 precisa de casos-limpos + régua verdict-aware;
+  A2 vulns mais sutis + mais clean traps; apertar réguas de detecção permissivas ("alg"/"signature"/"redirect").
+- **A4 architect-reviewer / A5 debugger** — autorar gold DRAFT + medir.
+- **Conectar o ruflo (Track C)** — `claude mcp add ruflo …` + booster callable-de-Python → medir 3 braços
+  (só squad / +booster / +memória) → plugar só o que mover o número.
 
 ## Fica com o humano (não fazer sozinho)
 Bênção de golds (D6) · promoções de roster (D5) · ativar OpenCode (`enabled=True`) · conectar ruflo MCP ·
