@@ -19,10 +19,11 @@ Legenda: ✅ feito · 🔄 em andamento · ⬜ a fazer · 🔒 bloqueado (pré-r
 
 ## Track B — Runner role-agnóstico (velocidade, DIP)
 
-- ⬜ **B1.** Generalizar o runner: régua vem do gold via `resolve_ruler` (hoje `code_review_eval` é específico
-  do papel). Um runner só serve qualquer papel consultivo.
-- ✅ **B2.** Checkpoint idempotente + teto de gasto (já existem; herdar no runner genérico).
-- ⬜ **B3.** Pré-voo de roster (`preflight`) + pré-voo de gold (`gold_preflight`) como guarda padrão de todo lote.
+- ✅ **B1.** `role_eval.py` — runner ROLE-AGNÓSTICO: régua vem do gold via `resolve_ruler` (fallback p/ a
+  convenção code-review, roda golds antigos). Fail-closed sem régua. Aditivo (não toca `code_review_eval`). +6 testes.
+- ✅ **B2.** Checkpoint idempotente + teto de gasto (herdados no runner genérico).
+- 🔄 **B3.** Pré-voo de gold (`gold_preflight`) já wired no `role_eval` (`clean_preflight_judges`). Falta o
+  pré-voo de roster (`preflight`, catálogo vivo) como guarda default — precisa de rede, fica opcional.
 
 ## Track C — União com ruflo (o SUBSTRATO, D14)
 
