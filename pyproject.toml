@@ -30,3 +30,8 @@ Repository = "https://github.com/oclaudemirsilva/super-squad-multiagent"
 
 [tool.setuptools]
 packages = ["super_squad"]
+
+[tool.pytest.ini_options]
+markers = [
+    "wsl: smoke que exige WSL2 (pula onde indisponível); a suíte hermética cobre o contrato sem WSL",
+]
