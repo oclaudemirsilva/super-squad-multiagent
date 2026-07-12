@@ -21,6 +21,13 @@ Python package `super_squad/`.
 | `code_review_eval.py` | Reference **per-role measurement runner** (template for new roles): runs one consultative persona across N models, N>=5 reps/case, against a private gold, with a spend cap and an idempotent checkpoint; scores detection (`contains_any`) × over-flag (`top_bug_clean`) × cost × latency; orders by cost-benefit; **never rosters** (D5). |
 | `rulers.py` | Ready-made **deterministic rulers** for the fiscal (one per role was always DIY): `json_valid` (strict about markdown fences), `numeric_close` (pulls the numeric answer out of prose, pt-BR/en), `length_window`, `contains_all`, `contains_any`, `contains_none`, `exact_match`, `keyword_verdict`, `set_f1`, `top_bug_clean` (clean-case verdict by the committed `TOP_BUG:` line) + `resolve_ruler` for JSON suites. Pure, stdlib-only. |
 | `bench.py` | **Roster bootstrap (step 0):** fan a task **suite** across a model **pool** → matrix of cost / latency / quality + per-role leaderboard + suggested roster. Quality comes only from a deterministic ruler **or** multiple collaborators' ratings aggregated by median — never model-judges-model (D6/D7). Dry-run by default; `--preflight` composes guard B6; it **suggests** but never rosters (D5). |
+| `role_eval.py` | **Role-agnostic measurement runner** (generalizes `code_review_eval`): the ruler comes from the GOLD per case (`resolve_ruler`), so one runner measures any consultative role. N>=5, spend cap, idempotent checkpoint. Opt-ins (all default-off, additive): `clean_preflight_judges` (gold pre-flight D12), `preflight_pool` (roster pre-flight B3, dead slug aborts), `system_suffix` (task-forcing to neutralize verbose-persona protocol noise, D15), `skill_path` (compose a skill to measure skill-lift, D3/D10). Never rosters (D5). |
+| `run_role.py` / `run_roles.py` | **The front doors.** `run_role` runs ONE measured subagent in one call; `run_roles` runs N in a single concurrent fan-out (persona + roster + optional `skill` + optional `instruction`/`system_suffix`), fail-soft per task, opt-in roster pre-flight. Consultative (system prompt injected, no tools execute). |
+| `skills.py` | **The skill layer (D10).** Ingests a playbook (`SkillSpec`) and `compose_system(persona, skill)` fuses it onto the persona system prompt. Gate: a skill that executes code (`requires_script`) raises `SkillGateError` in single-shot (Phase 2). License provenance per skill (`license`/`license_cleared`, human check, D2). |
+| `routing.py` | **The ruflo-union seam (D14).** `RoutingProvider` + `MeasuredRoutingProvider` (trivial intent + booster → $0; else → measured titular) + `NullBoosterAdapter` (ruflo absent → graceful fallback to the model). Scaffold: real booster/memory needs ruflo connected (Track C, human). |
+| `runtimes/base.py` | **The Phase-2 builder seam.** `BuilderRuntime` protocol + `BuilderTask`/`BuilderResult` + `PermissionProfile` + `NullBuilderRuntime` (fail-closed default) + `assert_builder_preconditions` (worktree + caps + human `hardening_ack` or it blocks). |
+| `runtimes/hardening.py` | **A1–A5 enforcement primitives (D-security).** `redact_secrets` (A2), `is_bash_allowed` (A3, anti-shell-chaining), `WorktreeManager` (A1, blast radius, `session` always removes), `SpendGuard` (A5, mid-loop cap), `enforce_permission` (fail-closed dispatch over a `PermissionProfile`). Pure, injectable, hermetic. |
+| `runtimes/opencode.py` | **OpenCode builder adapter — sequence wired, execution GATED.** §3 flow (global budget → ephemeral config → headless run → git diff → parse usage → ledger) + telemetry, all injectable. Three hard gates: `enabled=False` · preconditions · `command_builder=None` (refuses to guess the real CLI flags until §9 is human-verified). Never runs the binary on its own. |
 
 ## The methodology
 
@@ -112,12 +119,15 @@ the target task differs materially. Today all subagents are consultative (read &
 
 ## Where the architecture lives (read next, if you are an agent landing here)
 
-- `DECISIONS.md` — the design decisions D1–D14 (why the roster ships empty, why measurement is private, etc.).
+- `DECISIONS.md` — the design decisions D1–D16 (why the roster ships empty, why measurement is private, etc.).
+- `docs/INTEGRATION.md` — **honest integration map** of the union (subagents ✅ · skills ✅ · OpenCode 🟡 wired-but-gated · ruflo 🔴 seam-only), with the file that proves each claim.
+- `docs/ROADMAP.md` — status per track (A–F), honest.
+- `docs/BENCHMARK_STATEMENT.md` — the public anonymized benchmark claim (method + value, no slug/number).
 - `docs/design/subagent-portability.md` — what a subagent is and the full reuse contract.
-- `docs/design/flywheel-bootstrap.md` — the self-improving loop: measure roles in dependency order (reviewer → qa → architect → security → debugger → builders), on OpenRouter, cheapest model that matches the frontier.
-- `docs/design/opencode-builder-runtime.md` — the Phase-2 builder-runtime seam (not implemented).
-- `docs/design/ruflo-union-routing-seam.md` — the `RoutingProvider` seam uniting the fleet with a substrate (this engine = model authority; ruflo = cross-session memory + cost + $0 tier-1 booster). Design, not implemented (D14).
-- `docs/security/threat-model.md` — A1–A5 execution hardening (hard pre-reqs before any builder runs).
+- `docs/design/flywheel-bootstrap.md` — the self-improving loop: measure roles in dependency order (reviewer → qa → architect → security → debugger → builders), on OpenRouter, the best measured model per role.
+- `docs/design/opencode-builder-runtime.md` — the Phase-2 builder-runtime seam: **sequence wired + hardening implemented, execution gated** (`enabled=False` + §9 unverified); merge = human.
+- `docs/design/ruflo-union-routing-seam.md` — the `RoutingProvider` seam uniting the fleet with a substrate (this engine = model authority; ruflo = cross-session memory + cost + $0 tier-1 booster). **Seam scaffolded (`routing.py`), real ruflo NOT connected** (Track C, human, D14).
+- `docs/security/threat-model.md` — A1–A5 execution hardening; **enforcement primitives now implemented in `runtimes/hardening.py`** (hard pre-reqs before any builder runs).
 
 ## What stays yours
 

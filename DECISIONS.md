@@ -104,3 +104,25 @@ o objetivo é achar o mais barato que EMPATA a barra, pra baratear o workhorse. 
 mesmo gold é REUSADA, nunca re-rodada. Cada medição roda com teto de gasto (`budget_usd`, fail-soft:
 para ao bater o teto). QUAIS modelos são a âncora e os candidatos, e os números, ficam no roster
 PRIVADO (D1) — o repo público carrega só a política.
+
+## D15 — Ruído de protocolo de persona verbosa é bug de INSTRUMENTO, não sinal de modelo (2026-07-12)
+Personas de catálogo (VoltAgent-style) frequentemente começam com um passo de PROTOCOLO — ex. o
+`security-auditor` manda "Query context manager for security policies". Alguns modelos OBEDECEM
+literalmente: emitem um pedido de contexto (JSON) em vez de executar a tarefa. A medição então os
+pontua como FRACOS quando o problema é o INSTRUMENTO (a persona), não o cérebro do modelo — descoberto
+07-12 lendo os outputs à mão (o titular "falhava" só por isso; pass_rate saltou do fundo pro topo ao
+neutralizar). Correção: `role_eval`/`run_roles` aceitam `system_suffix` (opt-in), uma diretiva
+task-forcing anexada ao system prompt DEPOIS da skill ("você já tem todo o contexto; execute direto")
+que NÃO toca o gold humano (D6). Regra: medir persona verbosa SEM neutralizar é medição inválida —
+ligar o `system_suffix` (ou bakear a diretiva na persona vendorizada). É higiene de medição, não gaming:
+remove um artefato, não infla o número.
+
+## D16 — Pool de shootout: só IAs chinesas, qualidade-first, os 12 melhores (2026-07-12)
+Atualização de política do user (07-12): os shootouts do exército rodam SÓ com modelos chineses e a
+âncora frontier externa está SUSPENSA por ora. Dentro do universo chinês, a heurística
+muda de "o mais barato que empata" (D13) para **preferir os MELHORES/mais eficientes** — os que trazem o
+melhor RESULTADO —, mantendo uma lista dos ~12 melhores (curada+viva, PRIVADA em
+`_candidate_evals/POOL_CHINESE_TOP12.md`, D1). Rankear continua sendo MEDIR (N≥5, gold humano, `system_suffix`
+ligado, `max_tokens≥2000` p/ reasoning models senão vêm VAZIOS). Motivo: o objetivo imediato é o melhor
+cérebro por papel; custo é desempate, não o filtro primário. D13 (âncora frontier + teto) fica dormente
+enquanto a âncora externa está suspensa; o teto de gasto por medição permanece.
