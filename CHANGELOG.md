@@ -54,6 +54,14 @@
 - `roles/MANIFEST.md` — os 12 subagentes mais importantes em ordem de dependência (Fase 1 consultivos +
   Fase 2 construtor), com o rito de "entrar em ação sem gastar pra testar" (persona MIT + roster semeado
   com prior chinês via env; medir gradual, D9/D10). `docs/ROADMAP.md` — backlog por track.
+- `role_eval` — runner de medição ROLE-AGNÓSTICO: régua vem do gold via `resolve_ruler` (fallback p/ a
+  convenção code-review). Fail-closed sem régua; checkpoint + teto + pré-voo de gold herdados. +6 testes.
+- `skills` — ingestor `SkillSpec` (espelha `roles.py`) + `compose_system` (persona⊕skill) com gate D10
+  (skill que executa código = Fase 2, `SkillGateError`). +7 testes.
+- `routing` — SCAFFOLD do seam `RoutingProvider` (Tier-1 trivial → booster $0; resto → titular medido;
+  `NullBoosterAdapter` = fallback enquanto ruflo não plugado). +7 testes.
+- 8 personas consultivas autoradas (draft do workhorse chinês, gate humano) p/ os papéis do manifesto;
+  proveniência distinta do catálogo (`roles/vendor/README.md`). Suíte total **163**, 0 rede.
 
 ## 0.1.0 — 2026-07-08
 

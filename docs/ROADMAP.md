@@ -28,7 +28,9 @@ Legenda: ✅ feito · 🔄 em andamento · ⬜ a fazer · 🔒 bloqueado (pré-r
 ## Track C — União com ruflo (o SUBSTRATO, D14)
 
 - ✅ **C0.** Seam desenhado (`docs/design/ruflo-union-routing-seam.md`); ruflo confirmado 3-tier só-Claude.
-- ⬜ **C1.** Implementar `RoutingProvider` + `BoosterAdapter` (Tier-1 trivial → Agent Booster $0; resto → roster medido).
+- 🔄 **C1.** `routing.py` SCAFFOLD: `Route`/`Task`/`RoutingProvider` + `MeasuredRoutingProvider` (intent trivial
+  + booster → $0; senão → titular medido) + `NullBoosterAdapter` (ruflo não plugado → fallback gracioso pro
+  modelo). +7 testes. Falta o `BoosterAdapter` REAL (WASM/ruflo) — plugar + MEDIR o ganho (depende de C2).
 - 🔒 **C2.** Ligar o MCP do ruflo (`claude mcp add ruflo …`, USER) + `memory-bridge` (Graph-RAG cross-sessão).
 - ⬜ **C3.** Experimento N≥5, 3 braços: (A) Super Squad só · (B) +booster $0 · (C) +memória ruflo. Medir o ganho.
 - ⬜ **C4.** Plugar SÓ o braço que mover o número (mesmo gate do D10). Se não move, fica fora.
