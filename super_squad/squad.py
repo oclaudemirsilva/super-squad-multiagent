@@ -210,7 +210,49 @@ def estimate_cost(n_calls: int, avg_in_tokens: float, avg_out_tokens: float,
     return round(n_calls * per, 6)
 
 
-# ── Adapter OpenRouter (ponte pro chokepoint; ponto de extensão OCP) ─────────
+# ── Adapters de provider (ponte pro chokepoint; ponto de extensão OCP) ───────
+
+def make_text_job(
+    key: str,
+    prompt: str,
+    model: str,
+    price_in_per_mtok: float,
+    price_out_per_mtok: float,
+    *,
+    system: Optional[str] = None,
+    temperature: float = 0.2,
+    timeout: int = 120,
+    api_key: Optional[str] = None,
+    max_tokens: Optional[int] = None,
+    provider: Any = None,
+) -> Job:
+    """Monta um Job de TEXTO que chama `model` no `provider` e devolve `({model, text}, custo_usd)`.
+
+    `provider` = um `providers.Provider` (`None` = OpenRouter, o default de sempre). É o único
+    ponto do motor que sabe de provider — e mesmo assim só o REPASSA ao chokepoint, que resolve
+    base_url/chave/headers. Rodar o mesmo roster em outro provider = passar outro `provider`.
+
+    `max_tokens` (opcional) limita a saída — útil pra custo previsível E comparação JUSTA (todo
+    modelo do painel com o mesmo teto de saída; um modelo verboso não distorce custo/veredito).
+
+    Import LAZY de openrouter (mantém o motor sem dependência de import no topo e facilita o
+    mock nos testes: monkeypatch em `super_squad.openrouter.openrouter_messages_raw`)."""
+    def _run() -> "tuple[dict, float]":
+        from .openrouter import openrouter_messages_raw
+        data = openrouter_messages_raw(
+            [{"role": "user", "content": prompt}],
+            system=system, model=model, temperature=temperature, timeout=timeout,
+            api_key=api_key, max_tokens=max_tokens, provider=provider,
+        )
+        try:
+            text = data["choices"][0]["message"]["content"] or ""
+        except (KeyError, IndexError, TypeError):
+            text = ""
+        cost = cost_from_openrouter_usage(data.get("usage"), price_in_per_mtok, price_out_per_mtok)
+        return {"model": model, "text": text}, cost
+
+    return Job(key=key, run=_run, model=model)
+
 
 def make_openrouter_text_job(
     key: str,
@@ -225,28 +267,39 @@ def make_openrouter_text_job(
     api_key: Optional[str] = None,
     max_tokens: Optional[int] = None,
 ) -> Job:
-    """Monta um Job que chama um modelo OpenRouter e devolve `({model, text}, custo_usd)`.
+    """Job de texto no OPENROUTER (chave OPENROUTER_API_KEY, slugs `provider/modelo`).
+    Nome/assinatura/comportamento de SEMPRE — é `make_text_job` com o provider default."""
+    return make_text_job(
+        key, prompt, model, price_in_per_mtok, price_out_per_mtok,
+        system=system, temperature=temperature, timeout=timeout, api_key=api_key,
+        max_tokens=max_tokens, provider=None,
+    )
 
-    `max_tokens` (opcional) limita a saída — útil pra custo previsível E comparação JUSTA (todo
-    modelo do painel com o mesmo teto de saída; um modelo verboso não distorce custo/veredito).
 
-    Import LAZY de openrouter (mantém o motor sem dependência de import no topo e facilita o
-    mock nos testes: monkeypatch em `super_squad.openrouter.openrouter_messages_raw`)."""
-    def _run() -> "tuple[dict, float]":
-        from .openrouter import openrouter_messages_raw
-        data = openrouter_messages_raw(
-            [{"role": "user", "content": prompt}],
-            system=system, model=model, temperature=temperature, timeout=timeout,
-            api_key=api_key, max_tokens=max_tokens,
-        )
-        try:
-            text = data["choices"][0]["message"]["content"] or ""
-        except (KeyError, IndexError, TypeError):
-            text = ""
-        cost = cost_from_openrouter_usage(data.get("usage"), price_in_per_mtok, price_out_per_mtok)
-        return {"model": model, "text": text}, cost
+def make_qwen_text_job(
+    key: str,
+    prompt: str,
+    model: str,
+    price_in_per_mtok: float,
+    price_out_per_mtok: float,
+    *,
+    system: Optional[str] = None,
+    temperature: float = 0.2,
+    timeout: int = 120,
+    api_key: Optional[str] = None,
+    max_tokens: Optional[int] = None,
+) -> Job:
+    """Peer de `make_openrouter_text_job` no QWEN CLOUD (Alibaba Cloud Model Studio / DashScope):
+    mesma forma, mesmo custeio por `usage`, chave DASHSCOPE_API_KEY, slugs `qwen-plus`/`qwen-max`.
+    Um roster inteiro roda no Qwen Cloud trocando só o factory (ver `qwen_cloud.py`).
 
-    return Job(key=key, run=_run, model=model)
+    Import LAZY de providers (motor sem dependência de import no topo)."""
+    from .providers import QWEN_CLOUD
+    return make_text_job(
+        key, prompt, model, price_in_per_mtok, price_out_per_mtok,
+        system=system, temperature=temperature, timeout=timeout, api_key=api_key,
+        max_tokens=max_tokens, provider=QWEN_CLOUD,
+    )
 
 
 def make_openrouter_vision_job(

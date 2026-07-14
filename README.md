@@ -8,9 +8,11 @@ Python package `super_squad/`.
 
 | Module | Purpose |
 |--------|---------|
-| `openrouter.py` | Standard-library-only OpenRouter client. One key → N models across labs. Key **only** via env `OPENROUTER_API_KEY`, never logged; error bodies truncated. |
+| `providers.py` | **Named providers** (OpenAI-compatible endpoints): `OPENROUTER` (default — unchanged behavior) and `QWEN_CLOUD` (Alibaba Cloud Model Studio / DashScope). A `Provider` is pure config — `base_url`, `api_key_env`, `tiers` (flash/pro → slug), `attribution` — so a new provider adds an entry here and **zero** HTTP. Active provider: env `AI_SQUAD_PROVIDER` (default `openrouter`). |
+| `openrouter.py` | Standard-library-only **transport chokepoint** for every provider (name is historical). One key → N models across labs. Retry/backoff/timeout live here once; each public function takes an optional `provider=` (`None` = OpenRouter). Key **only** via env (`OPENROUTER_API_KEY` / `DASHSCOPE_API_KEY`), never logged; error bodies truncated and prefixed with the active provider name. |
+| `qwen_cloud.py` | **Alibaba Cloud Model Studio (DashScope) integration** — `qwen_chat` / `qwen_messages` / `qwen_messages_raw` against `https://dashscope-intl.aliyuncs.com/compatible-mode/v1` (OpenAI-compatible), key `DASHSCOPE_API_KEY`, tiers `qwen-plus` (flash) / `qwen-max` (pro). A thin named facade: it delegates to the shared chokepoint with `provider=QWEN_CLOUD` — no duplicated HTTP, no `openai` SDK, stdlib only. |
 | `registry.py` | Per-role model roster. **Ships empty on purpose:** the methodology requires **you** to measure models against **your** ground-truth before rostering them. Env override: `AI_SQUAD_ROSTER_<ROLE>="slug:price_in:price_out,slug2:..."`. Prices are USD per Mtok. |
-| `squad.py` | The fan-out engine: `Job`/`JobResult`/`run_squad` (concurrent jobs, per-run USD budget cap, fail-soft collection, injectable telemetry via `on_event`), `make_openrouter_text_job` / `make_openrouter_vision_job` adapters, `parse_verdict_keyword`, `aggregate_panel_verdicts` (majority vote, conservative tie-break BAD>OK>GOOD, optional per-model weights). |
+| `squad.py` | The fan-out engine: `Job`/`JobResult`/`run_squad` (concurrent jobs, per-run USD budget cap, fail-soft collection, injectable telemetry via `on_event`), `make_text_job` (provider-aware) / `make_openrouter_text_job` / `make_qwen_text_job` / `make_openrouter_vision_job` adapters, `parse_verdict_keyword`, `aggregate_panel_verdicts` (majority vote, conservative tie-break BAD>OK>GOOD, optional per-model weights). |
 | `preflight.py` | Guard **B6**: BEFORE spending, verify every roster slug still exists in the live OpenRouter catalog and compare live price vs configured (drift = warning; dead slug = hard abort via `PreflightError`). |
 | `spend_ledger.py` | Guard **B5**: persistent append-only global spend ledger with a per-window (day/month) ceiling; `check_budget` blocks new batches when the ceiling is hit and emits a 50/75/90/100% alert ladder. |
 | `maestro.py` | Workflow dispatcher: `WorkflowSpec(name, roles, runner, default_budget_usd, description, spends_money)` + `register()` + `dispatch()`. **DRY-RUN BY DEFAULT** (`execute=False` returns the plan and spends nothing). Composes the guards in order: missing-API-key abort → preflight → global ceiling (clamps the round budget to what remains) → runner → ledger record. CLI: `--list`, `--execute`, `--budget-usd`, `--limit`, `--rerun-tag`, `--skip-preflight`, `--daily-budget-usd`, `--spend-ledger`. |
@@ -63,6 +65,32 @@ python -m demo.toy_squad shadow_sentiment_judge --execute --limit 6   # ~$0.001
 ```
 
 Pure stdlib, no dependencies to install (Pillow optional for vision helpers). Python 3.10+.
+
+### Running the same squad on Qwen Cloud (Alibaba Cloud Model Studio / DashScope)
+
+The provider is config, not code. The whole panel — fan-out, budget cap, telemetry, shadow audit —
+runs on Qwen Cloud by switching env vars; nothing else changes:
+
+```bash
+export AI_SQUAD_PROVIDER=qwen_cloud          # default is openrouter (unchanged for everyone else)
+export DASHSCOPE_API_KEY=sk-...              # Alibaba Cloud Model Studio key
+export AI_SQUAD_ROSTER_SENTIMENT_JUDGE="qwen-plus:0.4:1.2,qwen-max:1.6:6.4"
+python -m demo.toy_squad shadow_sentiment_judge --execute --limit 6
+```
+
+Direct calls use the named facade (`super_squad/qwen_cloud.py`):
+
+```python
+from super_squad.qwen_cloud import qwen_chat
+qwen_chat("Explain Bayes' theorem in one sentence.", tier="flash")   # -> qwen-plus
+```
+
+DashScope is OpenAI-compatible, so it reuses the same stdlib chokepoint (same retry/backoff, same
+"the key never reaches a log or an exception" invariant). Attribution headers (`HTTP-Referer`/
+`X-Title`) are OpenRouter-specific and are **not** sent to DashScope. The live-catalog preflight
+(guard B6) is an OpenRouter endpoint, so under `qwen_cloud` it is skipped with an explicit warning
+instead of falsely failing a valid `qwen-*` slug; the missing-key abort still applies (it checks
+the **active** provider's key env).
 
 Reference run of the demo (2 models, 6 items, $0.00017): the naive ruler scored 4/6 against
 gold — it missed exactly the two negation traps — while the cross-lab panel scored 6/6; the

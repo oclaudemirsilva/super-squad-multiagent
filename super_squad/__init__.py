@@ -1,7 +1,9 @@
 """Super Squad Multiagent — orquestração multi-modelo COM regime de fiscalização.
 
 Camadas (de baixo pra cima; cada uma importável sozinha):
-  openrouter    — cliente stdlib-only (1 chave -> N modelos; chave SÓ por env)
+  providers     — endpoints OpenAI-compatíveis nomeados (openrouter | qwen_cloud); chave SÓ por env
+  openrouter    — chokepoint stdlib-only do transporte (retry/backoff/chave-nunca-vaza)
+  qwen_cloud    — fachada nomeada do Alibaba Cloud Model Studio (DashScope) sobre o chokepoint
   registry      — roster por papel (nasce vazio: você MEDE e preenche o seu)
   squad         — motor de fan-out (jobs, teto por rodada, voto ponderado)
   preflight     — guarda B6: slug vivo + drift de preço + chave presente, ANTES de gastar

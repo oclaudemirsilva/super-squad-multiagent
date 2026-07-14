@@ -95,20 +95,34 @@ def dispatch(
             # então um workflow que gasta $ SEM a chave passaria no pré-voo e rodaria fail-soft
             # até o fim com agent=None em todos os itens (custo 0, checkpoint poluído). Chave
             # ausente = falha de pré-voo, não de runner. Escape: --skip-preflight.
-            if spec.spends_money and not os.getenv("OPENROUTER_API_KEY"):
+            # A chave é a DO PROVIDER ATIVO (env AI_SQUAD_PROVIDER; default openrouter ->
+            # OPENROUTER_API_KEY, comportamento de sempre; qwen_cloud -> DASHSCOPE_API_KEY).
+            from .providers import default_provider  # noqa: E402 (lazy)
+            prov = default_provider()
+            if spec.spends_money and not os.getenv(prov.api_key_env):
                 return {"ok": False, "ran": False, "plan": the_plan,
-                        "error": "pré-voo bloqueou: OPENROUTER_API_KEY ausente no ambiente — "
+                        "error": f"pré-voo bloqueou: {prov.api_key_env} ausente no ambiente — "
                                  "workflow que gasta $ rodaria fail-soft com agent=None silencioso "
                                  "(exporte a chave antes de disparar)"}
-            from .preflight import assert_roster_live as preflight_fn  # noqa: E402 (lazy)
-        from .preflight import PreflightError  # noqa: E402 (lazy)
-        try:
-            preflight_report = preflight_fn(list(spec.roles))
-        except PreflightError as exc:
-            return {"ok": False, "ran": False, "plan": the_plan,
-                    "error": f"pré-voo bloqueou (slug morto no roster): {exc}"}
-        except Exception as exc:  # noqa: BLE001 — catálogo inacessível não bloqueia (warning)
-            preflight_report = {"ok": None, "warning": f"catálogo inacessível: {exc!r}"}
+            if prov.name == "openrouter":
+                from .preflight import assert_roster_live as preflight_fn  # noqa: E402 (lazy)
+        if preflight_fn is None:
+            # Só o OpenRouter tem o catálogo /models com `pricing` que o pré-voo confere; noutro
+            # provider (ex. qwen_cloud) o roster é de slugs DELE — checar contra o OpenRouter
+            # reprovaria slug vivo. Sem catálogo = sem checagem de slug (warning explícito),
+            # nunca um bloqueio falso.
+            preflight_report = {"ok": None,
+                                "warning": f"pré-voo de slug/preço só existe p/ openrouter; "
+                                           f"provider ativo = {prov.name} — checagem pulada"}
+        else:
+            from .preflight import PreflightError  # noqa: E402 (lazy)
+            try:
+                preflight_report = preflight_fn(list(spec.roles))
+            except PreflightError as exc:
+                return {"ok": False, "ran": False, "plan": the_plan,
+                        "error": f"pré-voo bloqueou (slug morto no roster): {exc}"}
+            except Exception as exc:  # noqa: BLE001 — catálogo inacessível não bloqueia (warning)
+                preflight_report = {"ok": None, "warning": f"catálogo inacessível: {exc!r}"}
 
     # B5 — teto de gasto GLOBAL (opcional; env AI_SQUAD_DAILY_BUDGET_USD como fallback)
     effective = budget

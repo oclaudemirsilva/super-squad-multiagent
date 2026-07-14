@@ -12,18 +12,28 @@ Dry-run por default — sem `--execute` nada gasta:
     python -m demo.toy_squad shadow_sentiment_judge --execute --limit 6  # gasta ~$0.001
 
 Guardas em ação (features, não bugs — rode para VER):
-- SEM a env OPENROUTER_API_KEY, `--execute` ABORTA no pré-voo com mensagem clara (nada de
-  rodada silenciosa com agent=null): python -m demo.toy_squad shadow_sentiment_judge --execute
+- SEM a chave do provider ativo (OPENROUTER_API_KEY, ou DASHSCOPE_API_KEY no Qwen Cloud),
+  `--execute` ABORTA no pré-voo com mensagem clara (nada de rodada silenciosa com agent=null):
+  python -m demo.toy_squad shadow_sentiment_judge --execute
 - SEM roster, o runner falha com instrução de configuração. Roster por env (o registry
   nasce vazio de propósito — meça os SEUS modelos antes de confiar neles):
   AI_SQUAD_ROSTER_SENTIMENT_JUDGE="google/gemini-2.5-flash:0.30:2.50,deepseek/deepseek-chat:0.27:1.10"
+
+PROVIDER: a demo roda no provider ATIVO (env `AI_SQUAD_PROVIDER`; default `openrouter`). Pra
+rodar o painel INTEIRO no Qwen Cloud (Alibaba Cloud Model Studio / DashScope — ver
+`super_squad/qwen_cloud.py`), basta trocar env, sem tocar código:
+    AI_SQUAD_PROVIDER=qwen_cloud DASHSCOPE_API_KEY=... \
+    AI_SQUAD_ROSTER_SENTIMENT_JUDGE="qwen-plus:0.4:1.2,qwen-max:1.6:6.4" \
+    python -m demo.toy_squad shadow_sentiment_judge --execute --limit 6
+(preços do roster = USD/Mtok do catálogo do provider; slugs do Qwen Cloud são `qwen-*`, sem `/`.)
 """
 from typing import Optional
 
 from super_squad.role_shadow import RoleAuditSpec, register_role, make_shadow_runner
 from super_squad.maestro import WorkflowSpec, register, main as maestro_main
+from super_squad.providers import default_provider
 from super_squad.registry import squad_roster
-from super_squad.squad import run_squad, make_openrouter_text_job, aggregate_panel_verdicts
+from super_squad.squad import run_squad, make_text_job, aggregate_panel_verdicts
 
 # ── GOLD humano (hardcoded; num projeto real: arquivo de mão humana, SÓ leitura) ──────────
 # Duas armadilhas calibradas p/ a régua naive ERRAR (não só abster) — é o desacordo didático:
@@ -78,13 +88,18 @@ def deterministic_fn(item: dict) -> dict:
 # ── Agente: painel de modelos (roster por env; ver docstring do módulo) ───────────────────
 def make_agent_fn(budget_usd: float):
     """Factory do agente pago. Fail-fast na construção se o roster estiver vazio (mesma
-    política dos factories do pacote); orçamento acumulado num closure entre chamadas."""
+    política dos factories do pacote); orçamento acumulado num closure entre chamadas.
+
+    Provider-agnóstica: resolve o provider ATIVO uma vez (env AI_SQUAD_PROVIDER; default
+    openrouter) e passa pro factory de job. Painel inteiro no Qwen Cloud = só trocar a env."""
     roster = squad_roster("sentiment_judge")
     if not roster:
         raise RuntimeError(
             "roster vazio p/ sentiment_judge — configure a env "
             'AI_SQUAD_ROSTER_SENTIMENT_JUDGE="slug:pin:pout[,slug2:pin2:pout2]" '
-            "(preços em USD/Mtok; catálogo vivo em https://openrouter.ai/models)")
+            "(preços em USD/Mtok; catálogo vivo em https://openrouter.ai/models — no Qwen Cloud, "
+            "https://www.alibabacloud.com/help/en/model-studio/models)")
+    provider = default_provider()
     spent = {"total": 0.0}
 
     def agent(item: dict) -> "Optional[dict]":
@@ -92,14 +107,14 @@ def make_agent_fn(budget_usd: float):
         if remaining <= 0:
             return None  # sem-resposta LIMPA por teto (o motor conta como no_answer, não erro)
         jobs = [
-            make_openrouter_text_job(
+            make_text_job(
                 key=f"{item['key']}::{slug}",
                 prompt=("Classify the sentiment of the following text as positive or negative.\n"
                         "Respond with exactly one word: POS or NEG.\n"
                         f"Text: {item['text']}"),
                 model=slug, price_in_per_mtok=pin, price_out_per_mtok=pout,
                 system="You are a sentiment classifier. Output only POS or NEG.",
-                temperature=0.0, timeout=60,
+                temperature=0.0, timeout=60, provider=provider,
             )
             for slug, pin, pout in roster
         ]

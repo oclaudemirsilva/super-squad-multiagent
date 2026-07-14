@@ -1,4 +1,4 @@
-"""Chokepoint unico das chamadas OpenRouter (OpenAI-compativel) do super_squad.
+"""Chokepoint unico das chamadas OpenAI-compativeis do super_squad (OpenRouter e Qwen Cloud).
 
 OpenRouter e um roteador: UMA chave -> muitos modelos (Gemini, Claude, DeepSeek,
 GPT...), todos via o mesmo endpoint OpenAI-compativel. E o que torna o painel
@@ -6,6 +6,12 @@ CROSS-LAB do squad barato de operar: o slug do modelo vai na REQUISICAO, entao u
 roster inteiro (varios provedores) roda com uma unica credencial. stdlib-only
 (urllib) de proposito — sem o SDK `openai`, pra manter o pacote importavel em
 qualquer ambiente sem adicionar dependencia.
+
+MULTI-PROVIDER (aditivo): toda funcao aceita `provider=` (um `providers.Provider`). `None` =
+OPENROUTER — o comportamento de HOJE, inalterado. O outro provider nomeado e `QWEN_CLOUD`
+(Alibaba Cloud Model Studio / DashScope, tambem OpenAI-compativel — ver `qwen_cloud.py`). O
+provider decide base_url, env da chave, tiers e atribuicao; retry/backoff/timeout/extracao sao
+COMPARTILHADOS aqui (nada de HTTP duplicado por provider).
 
 Endpoint: OpenAI-compativel https://openrouter.ai/api/v1/chat/completions.
 Modelos: slugs no formato `provider/model` (ex. 'google/gemini-2.5-flash',
@@ -22,9 +28,10 @@ Visao: `openrouter_chat_vision()` usa o formato OpenAI de content multipart
 Headers de atribuicao (opcionais, so entram se setados): `OPENROUTER_APP_URL` ->
 HTTP-Referer e `OPENROUTER_APP_TITLE` -> X-Title (aparecem nos rankings do OpenRouter).
 
-Chave: SO de env `OPENROUTER_API_KEY`; aceita `api_key=` explicito (DI, p/ quem injeta
-de um Settings que leu .env). NUNCA hardcode; NUNCA loga (nem em excecao — corpo de
-erro truncado, chave so no header).
+Chave: SO de env — `OPENROUTER_API_KEY` no OpenRouter, `DASHSCOPE_API_KEY` no Qwen Cloud (o
+provider ativo diz QUAL env); aceita `api_key=` explicito (DI, p/ quem injeta de um Settings que
+leu .env). NUNCA hardcode; NUNCA loga (nem em excecao — corpo de erro truncado, chave so no
+header).
 """
 from __future__ import annotations
 
@@ -35,52 +42,67 @@ import time
 import urllib.error
 import urllib.request
 
-# Base configuravel por env; o caminho OpenAI-compativel e fixo. Default = endpoint publico.
-_BASE = os.environ.get("OPENROUTER_BASE_URL", "https://openrouter.ai/api/v1").rstrip("/")
+from .providers import OPENROUTER, Provider
 
-# Tiers canonicos -> slug de modelo. flash = barato (default), pro = raciocinio/visao.
-# Default aponta pro Gemini via OpenRouter (o objetivo: desbloquear o Gemini). Override
-# por env sem tocar codigo — os slugs do OpenRouter podem mudar (ver /models).
-TIERS: dict[str, str] = {
-    "flash": os.environ.get("OPENROUTER_MODEL_FLASH", "google/gemini-2.5-flash"),
-    "pro": os.environ.get("OPENROUTER_MODEL_PRO", "google/gemini-2.5-pro"),
-}
+# Compat: nomes de modulo que sempre existiram, agora derivados do provider OpenRouter.
+# `_BASE` = base_url do OpenRouter (env OPENROUTER_BASE_URL); `TIERS` e o MESMO objeto de
+# OPENROUTER.tiers (flash = barato/default, pro = raciocinio/visao; override por env
+# OPENROUTER_MODEL_FLASH/PRO — os slugs mudam, ver https://openrouter.ai/models).
+_BASE = OPENROUTER.base_url
+TIERS: dict[str, str] = OPENROUTER.tiers
 # Tier default do gateway; override por env sem tocar codigo (AI_OPENROUTER_TIER=pro).
 DEFAULT_TIER = os.environ.get("AI_OPENROUTER_TIER", "flash")
 
 
 class OpenRouterError(RuntimeError):
-    """Falha de chamada OpenRouter (HTTP/transporte/resposta). Mensagem NUNCA contem a chave."""
+    """Falha de chamada ao provider (HTTP/transporte/resposta). Mensagem NUNCA contem a chave.
+
+    Nome mantido por compatibilidade (era o unico provider); vale pra qualquer provider — a
+    mensagem NOMEIA o provider ativo (ex.: "qwen_cloud HTTP 401: ...")."""
 
 
-def _api_key(api_key: str | None = None) -> str:
-    """Chave: `api_key=` explicito (DI) vence; senao env `OPENROUTER_API_KEY`.
-    NUNCA aparece em log/excecao. Erro acionavel se ausente."""
-    key = api_key or os.environ.get("OPENROUTER_API_KEY")
+def _provider(provider: "Provider | None") -> Provider:
+    """`None` -> OPENROUTER (default retrocompativel: caller antigo nao muda de comportamento)."""
+    return provider or OPENROUTER
+
+
+def _api_key(api_key: str | None = None, provider: "Provider | None" = None) -> str:
+    """Chave: `api_key=` explicito (DI) vence; senao a env DO PROVIDER (`api_key_env`:
+    OPENROUTER_API_KEY / DASHSCOPE_API_KEY). NUNCA aparece em log/excecao. Erro acionavel se
+    ausente — e o erro NOMEIA o provider e a env certa."""
+    prov = _provider(provider)
+    key = api_key or os.environ.get(prov.api_key_env)
     if not key:
         raise OpenRouterError(
-            "OpenRouter indisponivel: defina OPENROUTER_API_KEY no ambiente "
+            f"{prov.name} indisponivel: defina {prov.api_key_env} no ambiente "
             "(ou passe api_key=). A chave nunca e hardcoded nem logada."
         )
     return key
 
 
-def _resolve_model(tier: str | None, model: str | None) -> str:
-    """`model` explicito (slug cru) vence; senao mapeia o `tier` (flash/pro)."""
+def _resolve_model(tier: str | None, model: str | None,
+                   provider: "Provider | None" = None) -> str:
+    """`model` explicito (slug cru) vence; senao mapeia o `tier` (flash/pro) NO PROVIDER ativo
+    (ex.: flash = 'google/gemini-2.5-flash' no OpenRouter, 'qwen-plus' no Qwen Cloud)."""
     if model:
         return model
+    prov = _provider(provider)
     t = tier or DEFAULT_TIER
-    if t not in TIERS:
+    if t not in prov.tiers:
         raise OpenRouterError(
-            f"tier OpenRouter desconhecido: {t!r}. Use {sorted(TIERS)} ou passe model=."
+            f"tier {prov.name} desconhecido: {t!r}. Use {sorted(prov.tiers)} ou passe model=."
         )
-    return TIERS[t]
+    return prov.tiers[t]
 
 
-def _headers(key: str) -> dict[str, str]:
-    """Auth + content-type; + atribuicao opcional (so se as env vars estiverem setadas).
+def _headers(key: str, provider: "Provider | None" = None) -> dict[str, str]:
+    """Auth + content-type; + atribuicao opcional (so no provider que a suporta E so se as env
+    vars estiverem setadas). HTTP-Referer/X-Title sao ESPECIFICOS do OpenRouter (rankings) —
+    provider com `attribution=False` (ex. Qwen Cloud/DashScope) NAO os recebe.
     A chave vai SO aqui, no header — nunca no corpo, nunca em log/excecao."""
     h = {"Authorization": f"Bearer {key}", "Content-Type": "application/json"}
+    if not _provider(provider).attribution:
+        return h
     referer = os.environ.get("OPENROUTER_APP_URL")
     title = os.environ.get("OPENROUTER_APP_TITLE")
     if referer:
@@ -105,20 +127,25 @@ def _backoff_seconds(attempt: int, base: float = 0.5, cap: float = 4.0) -> float
     return random.random() * exp
 
 
-def _post(body: dict, key: str, timeout: int) -> dict:
-    """POST /chat/completions -> JSON. Erros viram OpenRouterError SEM vazar a chave
-    (que so vai no header). Corpo de erro truncado pra ser acionavel sem despejar tudo.
+def _post(body: dict, key: str, timeout: int, provider: "Provider | None" = None) -> dict:
+    """POST {provider.base_url}/chat/completions -> JSON. Erros viram OpenRouterError SEM vazar a
+    chave (que so vai no header) e NOMEANDO o provider ativo. Corpo de erro truncado pra ser
+    acionavel sem despejar tudo.
 
     Retry de blip TRANSITORIO e RAPIDO (429/5xx/queda de conexao) — esses respondem na
     hora, entao algumas tentativas cabem no orcamento. Timeout (abort) NAO e re-tentado:
-    re-esperar o timeout inteiro estouraria o budget. OPENROUTER_MAX_ATTEMPTS controla."""
+    re-esperar o timeout inteiro estouraria o budget. OPENROUTER_MAX_ATTEMPTS controla.
+
+    Transporte COMPARTILHADO por todos os providers (OpenRouter, Qwen Cloud/DashScope): eles sao
+    OpenAI-compativeis, entao o que muda e so base_url/headers — nada de HTTP duplicado."""
+    prov = _provider(provider)
     data = json.dumps(body).encode("utf-8")
-    last_err: OpenRouterError = OpenRouterError("OpenRouter: falha desconhecida")
+    last_err: OpenRouterError = OpenRouterError(f"{prov.name}: falha desconhecida")
     for attempt in range(1, _MAX_ATTEMPTS + 1):
         req = urllib.request.Request(
-            f"{_BASE}/chat/completions",
+            f"{prov.base_url}/chat/completions",
             data=data,
-            headers=_headers(key),
+            headers=_headers(key, prov),
             method="POST",
         )
         try:
@@ -130,7 +157,7 @@ def _post(body: dict, key: str, timeout: int) -> dict:
                 detail = e.read().decode("utf-8", "replace")[:500]
             except Exception:  # noqa: BLE001 — corpo de erro e best-effort
                 detail = "<sem corpo>"
-            last_err = OpenRouterError(f"OpenRouter HTTP {e.code}: {detail}")
+            last_err = OpenRouterError(f"{prov.name} HTTP {e.code}: {detail}")
             if _is_retryable_status(e.code) and attempt < _MAX_ATTEMPTS:
                 time.sleep(_backoff_seconds(attempt))
                 continue
@@ -140,7 +167,7 @@ def _post(body: dict, key: str, timeout: int) -> dict:
             # socket.timeout e alias de TimeoutError no 3.10+, entao isinstance cobre os dois.
             reason = getattr(e, "reason", e)
             is_timeout = isinstance(e, TimeoutError) or isinstance(reason, TimeoutError)
-            last_err = OpenRouterError(f"OpenRouter transporte: {reason}")
+            last_err = OpenRouterError(f"{prov.name} transporte: {reason}")
             if not is_timeout and attempt < _MAX_ATTEMPTS:
                 time.sleep(_backoff_seconds(attempt))
                 continue
@@ -148,11 +175,12 @@ def _post(body: dict, key: str, timeout: int) -> dict:
     raise last_err
 
 
-def _extract_text(data: dict) -> str:
+def _extract_text(data: dict, provider: "Provider | None" = None) -> str:
     try:
         content = data["choices"][0]["message"]["content"]
     except (KeyError, IndexError, TypeError) as e:
-        raise OpenRouterError(f"OpenRouter resposta inesperada: {type(e).__name__}") from None
+        raise OpenRouterError(
+            f"{_provider(provider).name} resposta inesperada: {type(e).__name__}") from None
     # `content` pode vir null (resposta filtrada/refusal/só-tool) — a chave existe mas é None,
     # então nenhuma exceção sobe. Honra o contrato `-> str` (senão o None vaza pro caller como
     # se fosse sucesso). Vazio vira "".
@@ -170,14 +198,17 @@ def openrouter_messages_raw(
     tools: list[dict] | None = None,
     tool_choice: "str | dict | None" = None,
     max_tokens: int | None = None,
+    provider: "Provider | None" = None,
 ) -> dict:
     """Multi-turn → retorna o JSON CRU da /chat/completions (choices[0].message pode ter
     `tool_calls`). Use quando precisar dos tool_calls (function-calling/agente); `openrouter_messages`
     e o atalho texto-so sobre esta. `tools`/`tool_choice` = formato OpenAI ({type:function,...}) —
-    OpenRouter e OpenAI-compativel, entao vao crus. `api_key=` vence o env (DI). Levanta
-    OpenRouterError sem vazar a chave."""
-    key = _api_key(api_key)
-    resolved = _resolve_model(tier, model)
+    os providers sao OpenAI-compativeis, entao vao crus. `api_key=` vence o env (DI).
+    `provider=` (None = OpenRouter) escolhe base_url/chave/tiers. Levanta OpenRouterError sem
+    vazar a chave."""
+    prov = _provider(provider)
+    key = _api_key(api_key, prov)
+    resolved = _resolve_model(tier, model, prov)
     msgs: list[dict] = []
     if system:
         msgs.append({"role": "system", "content": system})
@@ -190,7 +221,7 @@ def openrouter_messages_raw(
         body["tool_choice"] = tool_choice
     if max_tokens is not None:
         body["max_tokens"] = max_tokens
-    return _post(body, key, timeout)
+    return _post(body, key, timeout, prov)
 
 
 def openrouter_messages(
@@ -201,18 +232,19 @@ def openrouter_messages(
     temperature: float = 0.2,
     timeout: int = 120,
     api_key: str | None = None,
+    provider: "Provider | None" = None,
 ) -> str:
     """Multi-turn → retorna SO o texto. `messages` = [{"role": "user"|"assistant"|
-    "system", "content": str|list}, ...] no formato OpenAI (OpenRouter e OpenAI-compativel,
+    "system", "content": str|list}, ...] no formato OpenAI (os providers sao OpenAI-compativeis,
     entao vai cru). `system=` e prependido como uma message role='system' (conveniencia;
     tambem da pra passar dentro de `messages`). `model=` (slug cru) vence o tier; `api_key=`
-    vence o env (DI). Levanta OpenRouterError sem vazar a chave. Atalho texto-so sobre
-    openrouter_messages_raw (sem tools)."""
+    vence o env (DI); `provider=` (None = OpenRouter) escolhe o endpoint. Levanta
+    OpenRouterError sem vazar a chave. Atalho texto-so sobre openrouter_messages_raw (sem tools)."""
     data = openrouter_messages_raw(
         messages, system=system, tier=tier, model=model,
-        temperature=temperature, timeout=timeout, api_key=api_key,
+        temperature=temperature, timeout=timeout, api_key=api_key, provider=provider,
     )
-    return _extract_text(data)
+    return _extract_text(data, provider)
 
 
 def openrouter_chat(
@@ -223,10 +255,13 @@ def openrouter_chat(
     temperature: float = 0.2,
     timeout: int = 120,
     api_key: str | None = None,
+    provider: "Provider | None" = None,
 ) -> str:
     """Atalho single-turn → retorna SO o texto. Assinatura espelha openai_chat/
     deepseek_chat (troca de provider = trocar import). `model=` (slug cru) vence o
-    tier. `api_key=` explicito vence o env (DI). Delega a openrouter_messages."""
+    tier. `api_key=` explicito vence o env (DI). `provider=` (None = OpenRouter) escolhe o
+    endpoint — `qwen_cloud.qwen_chat` e a fachada NOMEADA disso p/ o Qwen Cloud.
+    Delega a openrouter_messages."""
     return openrouter_messages(
         [{"role": "user", "content": prompt}],
         system=system,
@@ -235,6 +270,7 @@ def openrouter_chat(
         temperature=temperature,
         timeout=timeout,
         api_key=api_key,
+        provider=provider,
     )
 
 
@@ -247,15 +283,18 @@ def openrouter_chat_vision_raw(
     temperature: float = 0.2,
     timeout: int = 120,
     api_key: str | None = None,
+    provider: "Provider | None" = None,
 ) -> dict:
     """Peer BRUTO de openrouter_chat_vision: retorna o JSON CRU da API (com `usage`) em vez
     de so o texto. Existe pro caller que precisa CUSTEAR a chamada (ex. squad.py
     make_openrouter_vision_job) — openrouter_chat_vision descarta `usage` ao extrair so o
     texto, entao motores de custo usam este em vez daquele (mesma relacao de
     openrouter_messages_raw p/ openrouter_messages). Mesmo formato multipart OpenAI
-    ({type:'text'} + {type:'image_url'})."""
-    key = _api_key(api_key)
-    resolved = _resolve_model(tier, model)
+    ({type:'text'} + {type:'image_url'}). `provider=` (None = OpenRouter): escolha um modelo
+    multimodal DO provider ativo (ex. qwen-vl-* no Qwen Cloud)."""
+    prov = _provider(provider)
+    key = _api_key(api_key, prov)
+    resolved = _resolve_model(tier, model, prov)
     content: list[dict] = [{"type": "text", "text": prompt}]
     for url in images:
         content.append({"type": "image_url", "image_url": {"url": url}})
@@ -269,6 +308,7 @@ def openrouter_chat_vision_raw(
         {"model": resolved, "messages": messages, "temperature": temperature, "stream": False},
         key,
         timeout,
+        prov,
     )
 
 
@@ -281,6 +321,7 @@ def openrouter_chat_vision(
     temperature: float = 0.2,
     timeout: int = 120,
     api_key: str | None = None,
+    provider: "Provider | None" = None,
 ) -> str:
     """Chat multimodal (texto + imagens) → retorna SO o texto.
 
@@ -288,14 +329,14 @@ def openrouter_chat_vision(
     Monta o content multipart do formato OpenAI ({type:'text'} + {type:'image_url'}).
     ESCOLHA um modelo multimodal via `model=` ou tier (Gemini/Claude/GPT-4o fazem visao);
     um modelo so-texto vai rejeitar as imagens. `api_key=` explicito vence o env (DI).
-    Levanta OpenRouterError sem vazar a chave.
+    `provider=` (None = OpenRouter) escolhe o endpoint. Levanta OpenRouterError sem vazar a chave.
     Atalho texto-so sobre openrouter_chat_vision_raw (sem usage; mesma relacao de
     openrouter_messages p/ openrouter_messages_raw)."""
     data = openrouter_chat_vision_raw(
         prompt, images, system=system, tier=tier, model=model,
-        temperature=temperature, timeout=timeout, api_key=api_key,
+        temperature=temperature, timeout=timeout, api_key=api_key, provider=provider,
     )
-    return _extract_text(data)
+    return _extract_text(data, provider)
 
 
 def openrouter_chat_audio(
@@ -309,6 +350,7 @@ def openrouter_chat_audio(
     timeout: int = 180,
     api_key: str | None = None,
     max_tokens: int | None = None,
+    provider: "Provider | None" = None,
 ) -> str:
     """Chat multimodal com ÁUDIO (texto + 1 clipe de áudio) → retorna SO o texto.
 
@@ -318,9 +360,11 @@ def openrouter_chat_audio(
     OpenAI-compatível, então vai cru. ESCOLHA um modelo que aceite áudio (Gemini faz;
     probe live: 40s de fala → ~6s, com timestamps por segmento). Um modelo sem áudio
     rejeita o clipe. `max_tokens` cobre transcrições longas (senão o modelo trunca).
-    `api_key=` explícito vence o env (DI). Levanta OpenRouterError sem vazar a chave."""
-    key = _api_key(api_key)
-    resolved = _resolve_model(tier, model)
+    `api_key=` explícito vence o env (DI); `provider=` (None = OpenRouter) escolhe o endpoint.
+    Levanta OpenRouterError sem vazar a chave."""
+    prov = _provider(provider)
+    key = _api_key(api_key, prov)
+    resolved = _resolve_model(tier, model, prov)
     content: list[dict] = [
         {"type": "text", "text": prompt},
         {"type": "input_audio", "input_audio": {"data": audio_b64, "format": audio_format}},
@@ -333,23 +377,29 @@ def openrouter_chat_audio(
     body: dict = {"model": resolved, "messages": messages, "temperature": temperature, "stream": False}
     if max_tokens is not None:
         body["max_tokens"] = max_tokens
-    data = _post(body, key, timeout)
-    return _extract_text(data)
+    data = _post(body, key, timeout, prov)
+    return _extract_text(data, prov)
 
 
-def openrouter_list_models(timeout: int = 30, api_key: str | None = None) -> dict:
+def openrouter_list_models(timeout: int = 30, api_key: str | None = None,
+                           provider: "Provider | None" = None) -> dict:
     """GET /models -> JSON CRU do catálogo público do OpenRouter ({"data": [{id, pricing, ...}]}).
 
     Endpoint PÚBLICO (não exige chave); se houver `OPENROUTER_API_KEY`/`api_key=`, manda no header
     (inofensivo, e respeita atribuição). Mesmo retry de blip TRANSITÓRIO do `_post` (429/5xx/queda
     de transporte; timeout NÃO re-tenta). Erros viram OpenRouterError sem vazar a chave. Usado pelo
     pré-voo do squad (`preflight.py`) pra confirmar que os slugs do roster existem e
-    comparar preço vivo vs. configurado ANTES de disparar um lote."""
-    key = api_key or os.environ.get("OPENROUTER_API_KEY")
-    headers = _headers(key) if key else {"Content-Type": "application/json"}
-    last_err: OpenRouterError = OpenRouterError("OpenRouter: falha desconhecida ao listar modelos")
+    comparar preço vivo vs. configurado ANTES de disparar um lote.
+
+    `provider=` (None = OpenRouter): o /models de OUTRO provider tem OUTRO schema (o `pricing` do
+    pré-voo é do OpenRouter) — por isso o maestro só roda esse pré-voo quando o provider ativo é o
+    OpenRouter."""
+    prov = _provider(provider)
+    key = api_key or os.environ.get(prov.api_key_env)
+    headers = _headers(key, prov) if key else {"Content-Type": "application/json"}
+    last_err: OpenRouterError = OpenRouterError(f"{prov.name}: falha desconhecida ao listar modelos")
     for attempt in range(1, _MAX_ATTEMPTS + 1):
-        req = urllib.request.Request(f"{_BASE}/models", headers=headers, method="GET")
+        req = urllib.request.Request(f"{prov.base_url}/models", headers=headers, method="GET")
         try:
             with urllib.request.urlopen(req, timeout=timeout) as resp:
                 return json.load(resp)
@@ -359,7 +409,7 @@ def openrouter_list_models(timeout: int = 30, api_key: str | None = None) -> dic
                 detail = e.read().decode("utf-8", "replace")[:500]
             except Exception:  # noqa: BLE001 — corpo de erro é best-effort
                 detail = "<sem corpo>"
-            last_err = OpenRouterError(f"OpenRouter HTTP {e.code}: {detail}")
+            last_err = OpenRouterError(f"{prov.name} HTTP {e.code}: {detail}")
             if _is_retryable_status(e.code) and attempt < _MAX_ATTEMPTS:
                 time.sleep(_backoff_seconds(attempt))
                 continue
@@ -367,7 +417,7 @@ def openrouter_list_models(timeout: int = 30, api_key: str | None = None) -> dic
         except (TimeoutError, urllib.error.URLError) as e:
             reason = getattr(e, "reason", e)
             is_timeout = isinstance(e, TimeoutError) or isinstance(reason, TimeoutError)
-            last_err = OpenRouterError(f"OpenRouter transporte: {reason}")
+            last_err = OpenRouterError(f"{prov.name} transporte: {reason}")
             if not is_timeout and attempt < _MAX_ATTEMPTS:
                 time.sleep(_backoff_seconds(attempt))
                 continue
