@@ -100,8 +100,11 @@ orchestrate(task, *, max_iters=3, budget_usd=1.0, roster_writer, roster_debugger
    fakes de write/debug/run_fn; exercita applier + régua reais; zero rede/WSL). `task_from_gold` converte
    um gold red→green num `LoopTask`. Achado colateral: o `execution_ruler` descartava o `stderr` do
    `test_fail` — agora o expõe no veredito (o DEBUG precisava dele).
-2. **FALTA — gold E2E do loop:** rodar `orchestrate` nos **9 golds mensuráveis** (07-15) com `run_fn=
-   wsl_sandboxed_run` real e o roster do writer medido: o loop fecha red→green sozinho em ≤3 iter + teto?
-   Métrica: taxa de fechamento por iteração + custo. (Requer roster do `code-writer` no env — pago.)
+   **Smoke E2E REAL passou** (07-15b, `smoke_loop_e2e.py`, privado): `orchestrate` no gold `a84eac0286`
+   com writer minimax REAL + `run_fn=wsl_sandboxed_run` REAL fechou red→green em **1 iter, $0.027** — prova
+   a costura `run_role`+WSL que os fakes herméticos não exercitam.
+2. **FALTA — métrica de fechamento nos 9 golds:** rodar `orchestrate` nos **9 golds mensuráveis** (07-15) com
+   WSL real e o writer medido → taxa de fechamento por iteração + custo (pago). O smoke provou 1 gold em 1
+   iter; falta o painel + o ganho do debugger na iter-2 (requer roster do `debugger` — hoje sem gold medido).
 3. Medir o ganho do **debugger no laço** (iter-2 com diagnóstico vs. re-tentar cego) — só entra se mover
    o número (mesma disciplina do D10 pra skills).
