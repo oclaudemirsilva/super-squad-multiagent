@@ -91,9 +91,17 @@ orchestrate(task, *, max_iters=3, budget_usd=1.0, roster_writer, roster_debugger
 
 ## Próximo passo concreto (quando for construir, com gold + teste antes)
 
-1. `super_squad/loop.py` — `orchestrate(task, *, max_iters, budget_usd, roster_writer, roster_debugger,
-   run_fn)` puro/injetável (fakes p/ teste hermético; zero rede/WSL nos testes), espelhando o harness.
-2. Gold do loop = os **9 golds mensuráveis** (07-15) usados como tarefas E2E: o loop deve fechar red→green
-   sozinho num teto de $ e ≤3 iterações. Métrica: taxa de fechamento por iteração + custo.
+1. ✅ **CONSTRUÍDO (5ª sessão, 07-15b):** `super_squad/loop.py` — `orchestrate(task, *, budget_usd,
+   max_iters=3, roster_writer, roster_debugger, run_fn, write_fn, debug_fn, apply_fn, ruler_factory)`
+   puro/injetável. `budget_usd` é OBRIGATÓRIO (sem default infinito). As 5 etapas mapeiam nas peças provadas
+   (DECOMPOR=`compose_writer_input` · ROTEAR=`run_role` panel · INTEGRAR=`_default_apply` tolerante ·
+   VERIFICAR=`execution_ruler`+run_fn · DEBUGAR=`run_role` debugger realimenta o stderr). As 4 paradas
+   (sucesso/teto/iterações/travado) implementadas. **13 testes 100% herméticos** (`tests/test_loop.py`:
+   fakes de write/debug/run_fn; exercita applier + régua reais; zero rede/WSL). `task_from_gold` converte
+   um gold red→green num `LoopTask`. Achado colateral: o `execution_ruler` descartava o `stderr` do
+   `test_fail` — agora o expõe no veredito (o DEBUG precisava dele).
+2. **FALTA — gold E2E do loop:** rodar `orchestrate` nos **9 golds mensuráveis** (07-15) com `run_fn=
+   wsl_sandboxed_run` real e o roster do writer medido: o loop fecha red→green sozinho em ≤3 iter + teto?
+   Métrica: taxa de fechamento por iteração + custo. (Requer roster do `code-writer` no env — pago.)
 3. Medir o ganho do **debugger no laço** (iter-2 com diagnóstico vs. re-tentar cego) — só entra se mover
    o número (mesma disciplina do D10 pra skills).
