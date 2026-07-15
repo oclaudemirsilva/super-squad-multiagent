@@ -1,3 +1,5 @@
+> ⚠️ **SUPERSEDED** — cumprido (4ª sessão: confounds fechados + loop construído/E2E). Entrada ATUAL: `KICKOFF_NEXT_SESSION.md`. Mantido só como histórico.
+
 # Kickoff da próxima sessão — (c) MEDIDO ✅ · construir (d) o orquestrador de loop
 
 > Prompt de retomada auto-contido (retoma a frio). Gerado ao fim da 4ª sessão autônoma (2026-07-15), que

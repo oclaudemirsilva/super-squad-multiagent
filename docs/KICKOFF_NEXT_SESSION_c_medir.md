@@ -1,3 +1,5 @@
+> ⚠️ **SUPERSEDED** — cumprido (3ª sessão). Entrada ATUAL: `KICKOFF_NEXT_SESSION.md`. Mantido só como histórico.
+
 # Kickoff da próxima sessão — (c) MEDIR o code-writer
 
 > Prompt de retomada auto-contido (retoma a frio). Gerado ao fim da 3ª sessão autônoma (2026-07-12), que

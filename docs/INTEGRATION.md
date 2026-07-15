@@ -31,6 +31,17 @@
 - Consultivo por padrão (injeta o system prompt, lê texto, nenhuma tool executa). Fail-soft por tarefa.
 - Arquivos: `super_squad/run_role.py`, `super_squad/run_roles.py`, `super_squad/roles.py`, `registry.py`.
 
+### ✅ Loop ATIVO (auto-conserto verificado por execução) — INTEGRADO (5ª sessão, 07-15b)
+- `loop.orchestrate(task, *, budget_usd, ...)` fecha o laço que faltava sobre o fan-out: ROTEAR (`run_role`)
+  → INTEGRAR (applier tolerante) → VERIFICAR (`execution_ruler` + `run_fn` OS-sandbox) → DEBUGAR (realimenta
+  o stderr) → repete, com 4 paradas (sucesso/teto/iterações/travado). `budget_usd` OBRIGATÓRIO.
+- É a metade ATIVA (que RESOLVE) sobre os subagentes consultivos (que julgam). Oráculo por EXECUÇÃO — o
+  modelo nunca autora o juiz (D6/D7); aplicar no mundo real = merge humano (D5).
+- Substrato de execução (sessões 3-4): `execution_ruler.py` (régua+applier), `wsl_sandbox.py` (`run_fn` real),
+  `harvest_validate.py`/`git_harvester.py` (golds red→green). Provado E2E (1 gold, 1 iter, $0.027).
+- FALTA medir: taxa de fechamento nos 9 golds + ganho do debugger na iter-2 (gold do `debugger` pendente).
+- Arquivos: `super_squad/loop.py` (+ `execution_ruler.py`, `wsl_sandbox.py`, `harvest_validate.py`, `git_harvester.py`).
+
 ### ✅ Skills — INTEGRADO (compostas ao system prompt, gated D10)
 - `run_roles(..., skill=...)` e `role_eval(..., skill_path=...)` fundem o playbook da skill no system
   prompt via `skills.compose_system`.
