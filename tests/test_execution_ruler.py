@@ -208,6 +208,38 @@ class TestDefaultApply(unittest.TestCase):
         self.assertFalse(_is_contained("/abs"))
         self.assertFalse(_is_contained("a\x00b"))
 
+    # ── applier tolerante (confound apply_failed): whitespace drift NÃO deve derrubar o apply ──
+    def test_tolerant_trailing_whitespace_in_context(self):
+        base = {"m.py": b"def f():\n    return 1\n"}
+        # contexto do modelo com trailing ws que o arquivo não tem
+        diff = "--- a/m.py\n+++ b/m.py\n@@ -1,2 +1,2 @@\n def f():   \n-    return 1\n+    return 2\n"
+        res = _default_apply(diff, base)
+        self.assertTrue(res.ok)
+        self.assertEqual(res.files["m.py"], b"def f():\n    return 2\n")
+
+    def test_tolerant_indentation_drift_preserves_file_indent(self):
+        base = {"m.py": b"class C:\n\tdef f(self):\n\t\treturn 1\n"}  # arquivo usa TAB
+        # modelo reproduz o contexto com ESPAÇOS (indent drift); add também com espaços
+        diff = ("--- a/m.py\n+++ b/m.py\n@@ -1,3 +1,3 @@\n class C:\n"
+                "     def f(self):\n-        return 1\n+        return 2\n")
+        res = _default_apply(diff, base)
+        self.assertTrue(res.ok)
+        # contexto mantém o TAB real do arquivo; a linha ADD entra como o modelo escreveu
+        self.assertEqual(res.files["m.py"], b"class C:\n\tdef f(self):\n        return 2\n")
+
+    def test_tolerant_refuses_ambiguous_match(self):
+        # dois blocos idênticos sob normalização ws → ambíguo → NÃO adivinha (apply_failed)
+        base = {"m.py": b"x = 1\n\nx = 1\n"}
+        diff = "--- a/m.py\n+++ b/m.py\n@@ -1 +1 @@\n-x  =  1\n+x = 2\n"
+        res = _default_apply(diff, base)
+        self.assertFalse(res.ok)
+
+    def test_tolerant_still_rejects_bogus_context(self):
+        base = {"m.py": b"a\nb\n"}
+        diff = "--- a/m.py\n+++ b/m.py\n@@ -1 +1 @@\n TOTALLY_UNRELATED\n-a\n+A\n"
+        res = _default_apply(diff, base)
+        self.assertFalse(res.ok)  # contexto não existe nem fuzzy → falha honesta
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -69,23 +69,25 @@ def _split_keep(text: str) -> "list[str]":
 
 
 def _parse_unified_diff(text: str) -> "Optional[dict[str, list]]":
-    """Diff unificado → {path: [(before_lines, after_lines), ...]}. None se não parece diff.
-    Ignora os offsets `@@ -a,b +c,d @@` de propósito: localizamos o hunk pelo CONTEÚDO (context+removidas),
-    então números de linha desatualizados que o modelo emitiu não importam — e o conteúdo casa BYTE-EXATO."""
+    """Diff unificado → {path: [hunk, ...]}, onde cada hunk é uma lista de ops `(op, linha)` com
+    `op ∈ {"ctx","del","add"}` na ORDEM emitida. None se não parece diff.
+    Ignora os offsets `@@ -a,b +c,d @@` de propósito: localizamos o hunk pelo CONTEÚDO (contexto+removidas),
+    então números de linha desatualizados que o modelo emitiu não importam. As ops taggeadas preservam
+    quais linhas são contexto (mantemos as do ARQUIVO) vs. adicionadas (usamos as do MODELO) — isso permite
+    o casamento tolerante (whitespace) sem reescrever a indentação real do arquivo."""
     lines = text.splitlines()
     if not any(l.startswith(("diff --git", "--- ", "@@ ")) for l in lines):
         return None
     out: "dict[str, list]" = {}
     path: "Optional[str]" = None
-    before: "list[str]" = []
-    after: "list[str]" = []
+    ops: "list[tuple[str, str]]" = []
     in_hunk = False
 
     def flush():
-        nonlocal before, after
-        if path is not None and (before or after):
-            out.setdefault(path, []).append((before, after))
-        before, after = [], []
+        nonlocal ops
+        if path is not None and ops:
+            out.setdefault(path, []).append(ops)
+        ops = []
 
     for l in lines:
         if l.startswith("+++ "):
@@ -100,12 +102,11 @@ def _parse_unified_diff(text: str) -> "Optional[dict[str, list]]":
             in_hunk = True
         elif in_hunk and path is not None:
             if l.startswith("+"):
-                after.append(l[1:] + "\n")
+                ops.append(("add", l[1:] + "\n"))
             elif l.startswith("-"):
-                before.append(l[1:] + "\n")
+                ops.append(("del", l[1:] + "\n"))
             elif l.startswith(" "):
-                before.append(l[1:] + "\n")
-                after.append(l[1:] + "\n")
+                ops.append(("ctx", l[1:] + "\n"))
             elif l.startswith("\\"):  # "\ No newline at end of file"
                 continue
             else:
@@ -115,22 +116,63 @@ def _parse_unified_diff(text: str) -> "Optional[dict[str, list]]":
     return out or None
 
 
+def _norm_rstrip(s: str) -> str:
+    """Tolerância nível 1: ignora só whitespace À DIREITA (trailing ws, `\\r`, newline final).
+    Seguro — não muda o significado da linha em Python."""
+    return s.rstrip()
+
+
+def _norm_ws(s: str) -> str:
+    """Tolerância nível 2: ignora TODO whitespace (indentação/espaçamento). Mais permissivo → só
+    para LOCALIZAR o bloco; a linha REESCRITA continua vindo do arquivo (contexto) ou do modelo (add)."""
+    return "".join(s.split())
+
+
+def _find_unique(cur: "list[str]", before: "list[str]", norm: "Callable[[str], str]") -> int:
+    """Índice ÚNICO onde `before` casa em `cur` sob a normalização `norm`. -1 se não casa;
+    -2 se AMBÍGUO (>1 posição) — nesse caso recusamos aplicar (não adivinha)."""
+    n = len(before)
+    nb = [norm(x) for x in before]
+    hits = [i for i in range(len(cur) - n + 1) if [norm(x) for x in cur[i:i + n]] == nb]
+    if not hits:
+        return -1
+    if len(hits) > 1:
+        return -2
+    return hits[0]
+
+
 def _apply_hunks(content: str, hunks: "list") -> "Optional[str]":
-    """Aplica os hunks de UM arquivo por busca de conteúdo. Retorna o novo conteúdo, ou None se QUALQUER
-    hunk não localizar seu bloco exatamente (whole-or-nothing por arquivo)."""
+    """Aplica os hunks de UM arquivo por busca de CONTEÚDO, whole-or-nothing por arquivo. Localiza o bloco
+    contexto+removidas com tolerância graduada a whitespace; ao reescrever, mantém a linha ORIGINAL do
+    arquivo para contexto/removidas e usa a linha do MODELO só para adições. Retorna None se QUALQUER hunk
+    não localizar seu bloco (ou for ambíguo na tolerância) → `apply_failed` honesto (nunca aplica no lugar errado)."""
     cur = _split_keep(content)
-    for before, after in hunks:
+    for hunk in hunks:
+        before = [t for op, t in hunk if op in ("ctx", "del")]
         if not before:                       # inserção pura sem contexto = ambígua sem offset → falha honesta
             return None
+        # tolerância graduada: exato (first-match, compat) → rstrip único → ws-insensível único.
         n = len(before)
-        idx = -1
-        for i in range(len(cur) - n + 1):
-            if cur[i:i + n] == before:
-                idx = i
-                break
-        if idx == -1:
-            return None                       # bloco não encontrado byte-exato → apply_failed
-        cur = cur[:idx] + after + cur[idx + n:]
+        idx = next((i for i in range(len(cur) - n + 1) if cur[i:i + n] == before), -1)
+        if idx < 0:
+            for norm in (_norm_rstrip, _norm_ws):
+                idx = _find_unique(cur, before, norm)
+                if idx >= 0:
+                    break
+                if idx == -2:                # ambíguo sob esta norma → não escala p/ norma mais frouxa
+                    return None
+        if idx < 0:
+            return None                       # bloco não encontrado → apply_failed
+        segment: "list[str]" = []
+        si = idx
+        for op, t in hunk:
+            if op == "ctx":
+                segment.append(cur[si]); si += 1     # preserva a linha REAL do arquivo (indentação inclusa)
+            elif op == "del":
+                si += 1                               # consome e descarta
+            else:                                     # add: linha do modelo, verbatim
+                segment.append(t)
+        cur = cur[:idx] + segment + cur[si:]
     return "".join(cur)
 
 
@@ -238,9 +280,12 @@ def execution_ruler(
     protected = set(test_files) | set(_COLLECTION_HOOKS)
 
     def _verdict(passed, label, r: "Optional[RunResult]" = None, extra=None):
+        # `stderr` (redigido) é exposto p/ o DEBUG do orquestrador de loop realimentar o próximo tiro;
+        # o env é mínimo (sem segredos) e passa pelo redator de todo jeito. Aditivo — não quebra o contrato.
         d = {"pass": passed, "label": label,
              "returncode": (r.returncode if r else None),
-             "detail": redact(str(extra)) if extra else ""}
+             "detail": redact(str(extra)) if extra else "",
+             "stderr": redact(r.stderr) if (r and getattr(r, "stderr", "")) else ""}
         return d
 
     def ruler(text: str, gold: object = None) -> dict:
