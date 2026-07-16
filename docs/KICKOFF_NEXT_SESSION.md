@@ -1,9 +1,10 @@
-# Kickoff da próxima sessão — (c) RE-MEDIDO honesto ✅ · (d) loop CONSTRUÍDO+E2E ✅ · falta métrica + gold humano
+# Kickoff da próxima sessão — loop MEDIDO (5/9) ✅ · debugger NÃO PROVADO ✅ · falta fonte FRESCA (Obj 3)
 
-> Prompt de retomada auto-contido (retoma a frio). Gerado ao fim da **5ª sessão autônoma (2026-07-15b)**, que
-> **fechou os 2 confounds de instrumento** (número honesto do code-writer) e **construiu + provou E2E** o
-> orquestrador de loop. Leia junto: `docs/design/loop-orchestrator.md`, `_candidate_evals/code_writer_2026-07-15/
-> FINDINGS.md` (v2, PRIVADO), `super_squad/loop.py`, `DECISIONS.md`. Supersede `KICKOFF_NEXT_SESSION_d_loop.md`.
+> Prompt de retomada auto-contido (retoma a frio). Gerado ao fim da **6ª sessão autônoma (2026-07-15c)**, que
+> **mediu o fechamento do loop** (Obj 1: 5/9) e **refutou o ganho do debugger** (Obj 2: N=1 iludiu, N=5 corrigiu).
+> A 5ª sessão fechara os 2 confounds do code-writer + construíra/provara E2E o orquestrador. Leia junto:
+> `docs/design/loop-orchestrator.md`, `_candidate_evals/code_writer_2026-07-15/FINDINGS.md` (v2, PRIVADO),
+> `super_squad/loop.py`, `DECISIONS.md`. Supersede `KICKOFF_NEXT_SESSION_d_loop.md`.
 
 ## Estado ao começar
 - Branch `feat/subagent-army-pilot`, suíte **319 verde**, **NÃO pushado** (push é do user).
@@ -29,17 +30,28 @@ code-writer, pool chinês, **N=5, 9 golds MENSURÁVEIS**, régua = `execution_ru
   (sucesso/teto/iter/travado). `budget_usd` OBRIGATÓRIO. **13 testes herméticos** + **smoke E2E REAL** (gold
   `a84eac0286`, minimax+WSL, red→green em 1 iter, $0.027 — `smoke_loop_e2e.py`).
 
-## OBJETIVOS da próxima sessão (em ordem)
-1. **Métrica de fechamento do loop nos 9 golds** (fecha o (d) com número): rodar `orchestrate` nos 9 golds
-   mensuráveis com WSL real + writer medido → taxa de fechamento por ITERAÇÃO + custo. Pré-req: decidir o
-   roster do writer (minimax pragmático, ou painel v4-pro+minimax+glm). ~$0.30-0.50 (pago).
-2. **Debugger no laço — mede o ganho** (iter-2 com diagnóstico vs. re-tentar cego). BLOQUEIO: o `debugger`
-   não tem gold MEDIDO (persona existe). Só entra se mover o número (disciplina D10). Autorar gold DRAFT +
-   medir (pool chinês, N≥5) OU usar os próprios 9 golds como proxy (o loop que não fecha na iter-1 → debugger
-   → fecha na iter-2?).
-3. **Fonte de PROMOÇÃO humana/não-memorizada** (trava nº1 do vazamento; firma titular): plugar
-   BugsInPy/Defects4J/QuixBugs no MESMO `execution_ruler` → gold FRESCO. Promoção = HUMANA (D5/D6). 4 travas:
-   vazamento (usar como calibração, NUNCA promoção sem held-out fresco), só origem humana, licença por fonte, transferência de domínio.
+## O QUE A 6ª SESSÃO (07-15c) FECHOU — Obj 1 e Obj 2 MEDIDOS
+- ✅ **Obj 1 — fechamento do loop nos 9 golds:** writer=minimax (decisão humana), max_iters=3, WSL real, sem
+  debugger. **5/9 (56%), TODOS na iter-1, $0.167 ($0.019/gold).** Achado: **iter-2/3 fechou +0** — retry-com-
+  stderr de um-modelo-só ≈ single-shot (5/9 casa com pass_all 0.51 do minimax). Valor iterativo do laço NÃO
+  vem de graça.
+- ✅ **Obj 2 — debugger no laço = NÃO PROVADO.** Proxy nos 4 não-fechados: minimax-dbg **0/4**; glm-4.7-dbg
+  pareceu resgatar 1 (`2c6b8cf384` iter-2) a N=1 → **firming N=5 REFUTOU** (as 5 closures do glm foram iter-1
+  ⇒ debugger nunca acionado; gold é alta-variância, no_debug fecha 3/5 sozinho). Nenhum efeito positivo
+  sobreviveu ao N=5. **Bloqueio metodológico:** os 9 golds fecham cedo demais na iter-1 → o debugger raramente
+  é exercido. Medir o debugger exige golds que FALHEM confiável na iter-1 (→ Obj 3). Detalhe: FINDINGS.md v2.
+- Harness novo (privado): `measure_loop_closure.py`, `firm_pivotal_gold.py`. Suíte **319 verde** (source intocado).
+  Commits `880a9cf` (métrica) + o deste fechamento. Gasto da sessão $0.453; saldo OpenRouter ≈ $1.17.
+
+## OBJETIVO da PRÓXIMA sessão (o degrau que restou)
+1. **Fonte de PROMOÇÃO humana/não-memorizada** (trava nº1 do vazamento; firma titular E desbloqueia a medição
+   do debugger): plugar BugsInPy/Defects4J/QuixBugs no MESMO `execution_ruler` → golds FRESCOS **e mais duros**
+   (falham iter-1 de forma confiável ⇒ o laço itera de verdade ⇒ o debugger é exercido). Promoção = HUMANA
+   (D5/D6). 4 travas: vazamento (calibração, NUNCA promoção sem held-out fresco), só origem humana, licença por
+   fonte, transferência de domínio (mede lá, REVALIDA no nosso).
+2. **(condicional ao 1)** Re-medir o debugger nos golds que falham iter-1 confiável — agora com o diagnóstico
+   sendo exercido. Só entra no titular se mover o número (D10). Draft-gold do debugger (autoro, USER bendiz)
+   segue como opção se a fonte externa não der golds-que-falham-iter1 suficientes.
 
 ## Guardrails (inegociáveis)
 - Promoção pra titular é **HUMANA (D5)** — eu meço, o user bendiz. Régua por EXECUÇÃO; o modelo nunca autora

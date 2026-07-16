@@ -113,7 +113,15 @@ orchestrate(task, *, max_iters=3, budget_usd=1.0, roster_writer, roster_debugger
    variância — o `a84eac0286` fechou no smoke e falhou aqui). Harness: `measure_loop_closure.py` (privado).
    Os 4 NÃO-fechados (candidatos ao debugger): `2c6b8cf384`, `07296303b5`, `a84eac0286`, `65c6125744`
    (este último nenhum modelo resolveu no single-shot).
-3. **A medir — ganho do debugger no laço** (iter-2 com diagnóstico vs. re-tentar com só o stderr): rodar
-   `orchestrate` COM `roster_debugger` nos 4 não-fechados → algum vira green? Isola o valor do diagnóstico
-   sobre o retry-com-stderr (que mediu +0 acima). Só entra no titular se mover o número (disciplina D10).
-   BLOQUEIO: o `debugger` não tem gold MEDIDO → decisão humana (draft gold vs. os 9 como proxy).
+3. ✅ **MEDIDO (6ª sessão, 07-15c) — ganho do debugger = NÃO PROVADO.** Proxy nos 4 não-fechados:
+   **minimax-debugger 0/4** (auto-diagnóstico do mesmo modelo não move). **glm-4.7 (reasoner) debugger**
+   pareceu resgatar 1 (`2c6b8cf384` iter-2 `test_fail→pass`) a N=1 — mas o **firming N=5 REFUTOU**: as 5
+   closures do glm foram TODAS iter-1, e o debugger **só dispara no fail** ⇒ ele nunca foi acionado; o "resgate"
+   era o gold sendo alta-variância (no_debug fecha 3/5, incluindo 1 iter-3 via retry-cru SEM debugger).
+   Nenhum efeito positivo do debugger sobreviveu ao N=5 (memória: N≥5, nunca N=1). **Bloqueio metodológico
+   descoberto:** medir o debugger exige golds que FALHEM de forma confiável na iter-1 (pra o diagnóstico ser
+   exercido) — os 9 atuais fecham cedo demais. Harness: `firm_pivotal_gold.py` (privado). → reforça o degrau 4.
+4. **A medir — fonte FRESCA/humana (Objetivo 3, degrau da firma-de-titular):** plugar BugsInPy/Defects4J/
+   QuixBugs no MESMO `execution_ruler` → golds não-memorizados E mais duros (falham iter-1 de forma confiável,
+   habilitando FINALMENTE a medição do debugger). 4 travas: vazamento (calibração≠promoção), origem-humana,
+   licença-por-fonte, transferência-de-domínio. Promoção = HUMANA (D5/D6).
