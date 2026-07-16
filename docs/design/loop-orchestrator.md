@@ -103,8 +103,17 @@ orchestrate(task, *, max_iters=3, budget_usd=1.0, roster_writer, roster_debugger
    **Smoke E2E REAL passou** (07-15b, `smoke_loop_e2e.py`, privado): `orchestrate` no gold `a84eac0286`
    com writer minimax REAL + `run_fn=wsl_sandboxed_run` REAL fechou red→green em **1 iter, $0.027** — prova
    a costura `run_role`+WSL que os fakes herméticos não exercitam.
-2. **FALTA — métrica de fechamento nos 9 golds:** rodar `orchestrate` nos **9 golds mensuráveis** (07-15) com
-   WSL real e o writer medido → taxa de fechamento por iteração + custo (pago). O smoke provou 1 gold em 1
-   iter; falta o painel + o ganho do debugger na iter-2 (requer roster do `debugger` — hoje sem gold medido).
-3. Medir o ganho do **debugger no laço** (iter-2 com diagnóstico vs. re-tentar cego) — só entra se mover
-   o número (mesma disciplina do D10 pra skills).
+2. ✅ **MEDIDO (6ª sessão, 07-15c):** taxa de fechamento nos **9 golds mensuráveis**, writer=minimax sozinho
+   (decisão humana), `max_iters=3`, `run_fn=wsl_sandboxed_run` REAL, sem debugger. **Fechou 5/9 (56%), TODOS
+   na iter-1, $0.167 total ($0.019/gold).** Achado HONESTO: **a iter-2/iter-3 fechou ZERO golds** — o
+   retry-com-stderr do minimax sozinho não resgatou nenhum (2 travaram no mesmo erro 2× = parada correta; 2
+   churnaram até o teto). O loop de-um-modelo-só ≈ single-shot (5/9=0.56 casa com o pass_all N=5=0.51 do
+   minimax). O valor iterativo do laço depende de **diagnóstico mais forte (debugger)** OU **diversidade de
+   modelo (painel)** — a medir, não assumir. Caveat: N=1 por gold no comportamento-de-loop (temp=0.4 tem
+   variância — o `a84eac0286` fechou no smoke e falhou aqui). Harness: `measure_loop_closure.py` (privado).
+   Os 4 NÃO-fechados (candidatos ao debugger): `2c6b8cf384`, `07296303b5`, `a84eac0286`, `65c6125744`
+   (este último nenhum modelo resolveu no single-shot).
+3. **A medir — ganho do debugger no laço** (iter-2 com diagnóstico vs. re-tentar com só o stderr): rodar
+   `orchestrate` COM `roster_debugger` nos 4 não-fechados → algum vira green? Isola o valor do diagnóstico
+   sobre o retry-com-stderr (que mediu +0 acima). Só entra no titular se mover o número (disciplina D10).
+   BLOQUEIO: o `debugger` não tem gold MEDIDO → decisão humana (draft gold vs. os 9 como proxy).
